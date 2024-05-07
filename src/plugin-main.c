@@ -22,14 +22,37 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE(PLUGIN_NAME, "en-US")
 
-bool obs_module_load(void)
-{
-	obs_log(LOG_INFO, "plugin loaded successfully (version %s)",
-		PLUGIN_VERSION);
-	return true;
+// some sort of driving structure
+// struct blah{
+//  directories
+//  current count
+//      removed
+//      added
+// }
+//
+
+static void git_stats_update(void) {
+    FILE* fp;
+    char output[1000];
+    // do this for all items within the structure
+    fp = popen(
+        "/usr/bin/git diff --shortstat /home/Bee/Projects/git-stats", "r");
+
+    if (fp == NULL) {
+        printf("FP WAS NULL\n");
+        exit(1);
+    }
+
+    while (fgets(output, sizeof(output), fp)) {
+        printf("%s\n", output);
+    }
+    pclose(fp);
 }
 
-void obs_module_unload(void)
-{
-	obs_log(LOG_INFO, "plugin unloaded");
+bool obs_module_load(void) {
+    obs_log(
+        LOG_INFO, "plugin loaded successfully (version %s)", PLUGIN_VERSION);
+    return true;
 }
+
+void obs_module_unload(void) { obs_log(LOG_INFO, "plugin unloaded"); }
