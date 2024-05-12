@@ -17,16 +17,47 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 */
 
 #include <obs-module.h>
+#include <plugin-source.h>
 #include <plugin-support.h>
+#include <stdbool.h>
+#include <util/platform.h>
+
+#include "find-font.h"
+#include "ft2build.h"
+#include "globals.h"
+
+#define DEBUG 1
 
 OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE(PLUGIN_NAME, "en-US")
 
+FT_Library ft2_lib;
+bool plugin_initialized = false;
+
 bool obs_module_load(void) {
+    char* config_dir = obs_module_config_path(NULL);
+    if (config_dir) {
+        os_mkdirs(config_dir);
+        bfree(config_dir);
+    }
+
     obs_log(
-        LOG_INFO, "[PLUGIN TEST] plugin loaded successfully (version %s)",
+        LOG_INFO, "[GIT STATS] plugin loaded successfully (version %s)",
         PLUGIN_VERSION);
+    obs_log(LOG_INFO, "TEST: %d", DEBUG);
+    if (DEBUG) obs_log(LOG_INFO, "[GIT STATS] Attempting To Load Source V1");
+    obs_register_source(&freetype2_source_info_v1);
+    if (DEBUG) obs_log(LOG_INFO, "[GIT STATS] Attempting To Load Source V2");
+    obs_register_source(&freetype2_source_info_v2);
     return true;
 }
 
-void obs_module_unload(void) { obs_log(LOG_INFO, "plugin unloaded"); }
+void obs_module_unload(void) {
+    if (DEBUG) obs_log(LOG_INFO, "[GIT STATS] Unloading Plugin");
+    if (plugin_initialized) {
+        free_os_font_list();
+        FT_Done_FreeType(ft2_lib);
+    }
+
+    obs_log(LOG_INFO, "[GIT STATS] plugin unloaded");
+}
