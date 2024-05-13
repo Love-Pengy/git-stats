@@ -200,7 +200,7 @@ static void create_bitmap_sizes(struct font_path_info* info, FT_Face face) {
     da_reserve(sizes, face->num_fixed_sizes);
 
     for (int i = 0; i < face->num_fixed_sizes; i++) {
-        FT_Pos val = face->available_sizes[i].size >> 6;
+        int val = face->available_sizes[i].size >> 6;
         da_push_back(sizes, &val);
     }
 
@@ -271,7 +271,7 @@ void build_font_path_info(FT_Face face, FT_Long idx, const char* path) {
         family = sfnt_name_to_utf8(&name);
         if (!family) continue;
 
-        for (size_t i = 0; i < family_names.num; i++) {
+        for (size_t j = 0; j < family_names.num; j++) {
             if (astrcmpi(family_names.array[i], family) == 0) {
                 bfree(family);
                 family = NULL;

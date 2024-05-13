@@ -34,6 +34,8 @@ if(ENABLE_QT)
                AUTORCC ON)
 endif()
 
-target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.c)
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/find-font.h src/obs-convenience.c src/text-functionality.c src/text-freetype2.c src/obs-convenience.h src/text-freetype2.h src/find-font-unix.c
+) 
 
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})
+

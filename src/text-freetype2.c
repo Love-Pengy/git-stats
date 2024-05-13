@@ -1,13 +1,42 @@
+/******************************************************************************
+Copyright (C) 2014 by Nibbles
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+******************************************************************************/
+
+#include <ft2build.h>
 #include <obs-module.h>
+#include <util/platform.h>
+#include FT_FREETYPE_H
+#include <sys/stat.h>
 
-#include "globals.h"
+#include "find-font.h"
+#include "obs-convenience.h"
+#include "text-freetype2.h"
 
-#define DEBUG 1
+FT_Library ft2_lib;
 
-// SOURCE INFO FROM:
-// https://github.com/obsproject/obs-studio/blob/master/plugins/text-freetype2/text-freetype2.c#L338
-struct obs_source_info freetype2_source_info_v1 = {
-    .id = "text_ft2_source",
+OBS_DECLARE_MODULE()
+OBS_MODULE_USE_DEFAULT_LOCALE("text-freetype2", "en-US")
+MODULE_EXPORT const char* obs_module_description(void) {
+    return "FreeType2 text source";
+}
+
+uint32_t texbuf_w = 2048, texbuf_h = 2048;
+
+static struct obs_source_info freetype2_source_info_v1 = {
+    .id = "git-stats",
     .type = OBS_SOURCE_TYPE_INPUT,
     .output_flags =
         OBS_SOURCE_VIDEO | OBS_SOURCE_CAP_OBSOLETE | OBS_SOURCE_CUSTOM_DRAW,
@@ -24,8 +53,8 @@ struct obs_source_info freetype2_source_info_v1 = {
     .icon_type = OBS_ICON_TYPE_TEXT,
 };
 
-struct obs_source_info freetype2_source_info_v2 = {
-    .id = "text_ft2_source",
+static struct obs_source_info freetype2_source_info_v2 = {
+    .id = "git-stats",
     .version = 2,
     .type = OBS_SOURCE_TYPE_INPUT,
     .output_flags = OBS_SOURCE_VIDEO |
@@ -47,9 +76,9 @@ struct obs_source_info freetype2_source_info_v2 = {
     .icon_type = OBS_ICON_TYPE_TEXT,
 };
 
-void init_plugin(void) {
-    if (DEBUG) obs_log(LOG_INFO, "[GIT STATS] Starting Initialize Plugin");
+static bool plugin_initialized = false;
 
+static void init_plugin(void) {
     if (plugin_initialized) return;
 
     FT_Init_FreeType(&ft2_lib);
@@ -62,32 +91,95 @@ void init_plugin(void) {
     if (!load_cached_os_font_list()) load_os_font_list();
 
     plugin_initialized = true;
-    if (DEBUG) obs_log(LOG_INFO, "[GIT STATS] Done Initializing Plugin");
 }
 
-const char* ft2_source_get_name(void* unused) {
-    if (DEBUG) obs_log(LOG_INFO, "[GIT STATS] Getting Source Name");
+bool obs_module_load() {
+    char* config_dir = obs_module_config_path(NULL);
+    if (config_dir) {
+        os_mkdirs(config_dir);
+        bfree(config_dir);
+    }
+
+    obs_register_source(&freetype2_source_info_v1);
+    obs_register_source(&freetype2_source_info_v2);
+
+    return true;
+}
+
+void obs_module_unload(void) {
+    if (plugin_initialized) {
+        free_os_font_list();
+        FT_Done_FreeType(ft2_lib);
+    }
+}
+
+static const char* ft2_source_get_name(void* unused) {
     UNUSED_PARAMETER(unused);
-    return (obs_module_text("Git Stats"));
+    return obs_module_text("Git Stats");
 }
 
-void* ft2_source_create(obs_data_t* settings, obs_source_t* source) {
-    if (DEBUG) obs_log(LOG_INFO, "[GIT STATS] Creating Source");
-    struct ft2_source* srcdata = bzalloc(sizeof(struct ft2_source));
-    srcdata->src = source;
+static uint32_t ft2_source_get_width(void* data) {
+    struct ft2_source* srcdata = data;
 
-    init_plugin();
-
-    obs_source_update(source, NULL);
-
-    UNUSED_PARAMETER(settings);
-
-    if (DEBUG) obs_log(LOG_INFO, "[GIT STATS] Created Source");
-    return (srcdata);
+    return srcdata->cx + srcdata->outline_width;
 }
 
-void ft2_source_destroy(void* data) {
-    if (DEBUG) obs_log(LOG_INFO, "[GIT STATS] Destroying Source");
+static uint32_t ft2_source_get_height(void* data) {
+    struct ft2_source* srcdata = data;
+
+    return srcdata->cy + srcdata->outline_width;
+}
+
+static obs_properties_t* ft2_source_properties(void* unused) {
+    UNUSED_PARAMETER(unused);
+
+    obs_properties_t* props = obs_properties_create();
+    // obs_property_t *prop;
+
+    // TODO:
+    //	Scrolling. Can't think of a way to do it with the render
+    //		targets currently being broken. (0.4.2)
+    //	Better/pixel shader outline/drop shadow
+    //	Some way to pull text files from network, I dunno
+
+    obs_properties_add_font(props, "font", obs_module_text("Font"));
+
+    obs_properties_add_text(
+        props, "text", obs_module_text("Text"), OBS_TEXT_MULTILINE);
+
+    obs_properties_add_bool(
+        props, "from_file", obs_module_text("ReadFromFile"));
+
+    obs_properties_add_bool(
+        props, "antialiasing", obs_module_text("Antialiasing"));
+
+    obs_properties_add_bool(props, "log_mode", obs_module_text("ChatLogMode"));
+
+    obs_properties_add_int(
+        props, "log_lines", obs_module_text("ChatLogLines"), 1, 1000, 1);
+
+    obs_properties_add_path(
+        props, "text_file", obs_module_text("TextFile"), OBS_PATH_FILE,
+        obs_module_text("TextFileFilter"), NULL);
+
+    obs_properties_add_color_alpha(props, "color1", obs_module_text("Color1"));
+
+    obs_properties_add_color_alpha(props, "color2", obs_module_text("Color2"));
+
+    obs_properties_add_bool(props, "outline", obs_module_text("Outline"));
+
+    obs_properties_add_bool(
+        props, "drop_shadow", obs_module_text("DropShadow"));
+
+    obs_properties_add_int(
+        props, "custom_width", obs_module_text("CustomWidth"), 0, 4096, 1);
+
+    obs_properties_add_bool(props, "word_wrap", obs_module_text("WordWrap"));
+
+    return props;
+}
+
+static void ft2_source_destroy(void* data) {
     struct ft2_source* srcdata = data;
 
     if (srcdata->font_face != NULL) {
@@ -106,6 +198,7 @@ void ft2_source_destroy(void* data) {
     if (srcdata->font_style != NULL) bfree(srcdata->font_style);
     if (srcdata->text != NULL) bfree(srcdata->text);
     if (srcdata->texbuf != NULL) bfree(srcdata->texbuf);
+    if (srcdata->colorbuf != NULL) bfree(srcdata->colorbuf);
     if (srcdata->text_file != NULL) bfree(srcdata->text_file);
 
     obs_enter_graphics();
@@ -126,13 +219,70 @@ void ft2_source_destroy(void* data) {
     obs_leave_graphics();
 
     bfree(srcdata);
-
-    if (DEBUG) obs_log(LOG_INFO, "[GIT STATS] Source Destroyed");
 }
 
-// THIS IS THE ONE WE NEED TO UPDATE
-void ft2_source_update(void* data, obs_data_t* settings) {
-    if (DEBUG) obs_log(LOG_INFO, "[GIT STATS] Updating Source");
+static void ft2_source_render(void* data, gs_effect_t* effect) {
+    struct ft2_source* srcdata = data;
+    if (srcdata == NULL) return;
+
+    if (srcdata->tex == NULL || srcdata->vbuf == NULL) return;
+    if (srcdata->text == NULL || *srcdata->text == 0) return;
+
+    gs_reset_blend_state();
+    if (srcdata->outline_text) draw_outlines(srcdata);
+    if (srcdata->drop_shadow) draw_drop_shadow(srcdata);
+
+    draw_uv_vbuffer(
+        srcdata->vbuf, srcdata->tex, srcdata->draw_effect,
+        (uint32_t)wcslen(srcdata->text) * 6);
+
+    UNUSED_PARAMETER(effect);
+}
+
+static void ft2_video_tick(void* data, float seconds) {
+    struct ft2_source* srcdata = data;
+    if (srcdata == NULL) return;
+    if (!srcdata->from_file || !srcdata->text_file) return;
+
+    if (os_gettime_ns() - srcdata->last_checked >= 1000000000) {
+        time_t t = get_modified_timestamp(srcdata->text_file);
+        srcdata->last_checked = os_gettime_ns();
+
+        if (srcdata->update_file) {
+            if (srcdata->log_mode)
+                read_from_end(srcdata, srcdata->text_file);
+            else
+                load_text_from_file(srcdata, srcdata->text_file);
+            cache_glyphs(srcdata, srcdata->text);
+            set_up_vertex_buffer(srcdata);
+            srcdata->update_file = false;
+        }
+
+        if (srcdata->m_timestamp != t) {
+            srcdata->m_timestamp = t;
+            srcdata->update_file = true;
+        }
+    }
+
+    UNUSED_PARAMETER(seconds);
+}
+
+static bool init_font(struct ft2_source* srcdata) {
+    FT_Long index;
+    const char* path = get_font_path(
+        srcdata->font_name, srcdata->font_size, srcdata->font_style,
+        srcdata->font_flags, &index);
+    if (!path) return false;
+
+    if (srcdata->font_face != NULL) {
+        FT_Done_Face(srcdata->font_face);
+        srcdata->font_face = NULL;
+    }
+
+    return FT_New_Face(ft2_lib, path, index, &srcdata->font_face) == 0;
+}
+
+static void ft2_source_update(void* data, obs_data_t* settings) {
     struct ft2_source* srcdata = data;
     obs_data_t* font_obj = obs_data_get_obj(settings, "font");
     bool vbuf_needs_update = false;
@@ -193,10 +343,7 @@ void ft2_source_update(void* data, obs_data_t* settings) {
         srcdata->log_lines = log_lines;
         vbuf_needs_update = true;
     }
-    if (srcdata->log_mode != chat_log_mode) {
-        srcdata->log_mode = chat_log_mode;
-        vbuf_needs_update = true;
-    }
+    srcdata->log_mode = chat_log_mode;
 
     if (ft2_lib == NULL) goto error;
 
@@ -274,7 +421,6 @@ void ft2_source_update(void* data, obs_data_t* settings) {
 
     if (srcdata->font_face) cache_standard_glyphs(srcdata);
 
-// THIS IS THE PART WHERE WE EDIT THE ACTUAL TEXT
 skip_font_load:
     if (from_file) {
         const char* tmp = obs_data_get_string(settings, "text_file");
@@ -326,8 +472,6 @@ skip_font_load:
 
 error:
     obs_data_release(font_obj);
-
-    if (DEBUG) obs_log(LOG_INFO, "[GIT STATS] Updated Source");
 }
 
 #ifdef _WIN32
@@ -338,163 +482,32 @@ error:
 #define DEFAULT_FACE "Sans Serif"
 #endif
 
-uint32_t ft2_source_get_width(void* data) {
-    if (DEBUG) obs_log(LOG_INFO, "[GIT STATS] Getting Width");
-    struct ft2_source* srcdata = data;
-    return (srcdata->cx + srcdata->outline_width);
+static void* ft2_source_create(obs_data_t* settings, obs_source_t* source) {
+    struct ft2_source* srcdata = bzalloc(sizeof(struct ft2_source));
+    srcdata->src = source;
+
+    init_plugin();
+
+    obs_source_update(source, NULL);
+
+    UNUSED_PARAMETER(settings);
+
+    return srcdata;
 }
 
-uint32_t ft2_source_get_height(void* data) {
-    if (DEBUG) obs_log(LOG_INFO, "[GIT STATS] Getting Height");
-    struct ft2_source* srcdata = data;
-    return (srcdata->cy + srcdata->outline_width);
+static void missing_file_callback(void* src, const char* new_path, void* data) {
+    struct ft2_source* s = src;
+
+    obs_source_t* source = s->src;
+    obs_data_t* settings = obs_source_get_settings(source);
+    obs_data_set_string(settings, "text_file", new_path);
+    obs_source_update(source, settings);
+    obs_data_release(settings);
+
+    UNUSED_PARAMETER(data);
 }
 
-// gs = graphics
-void ft2_source_render(void* data, gs_effect_t* effect) {
-    if (DEBUG) obs_log(LOG_INFO, "[GIT STATS] Rendering Source");
-    struct ft2_source* srcdata = data;
-
-    // if invalid return null
-    if (srcdata == NULL) return;
-    if (srcdata->tex == NULL || srcdata->vbuf == NULL) return;
-    if (srcdata->text == NULL || *srcdata->text == 0) return;
-
-    gs_reset_blend_state();
-    if (srcdata->outline_text) draw_outlines(srcdata);
-    if (srcdata->drop_shadow) draw_drop_shadow(srcdata);
-
-    draw_uv_vbuffer(
-        srcdata->vbuf, srcdata->tex, srcdata->draw_effect,
-        (uint32_t)wcslen(srcdata->text) * 6, true);
-
-    UNUSED_PARAMETER(effect);
-    if (DEBUG) obs_log(LOG_INFO, "[GIT STATS] Source Rendered");
-}
-
-// update timestamps
-void ft2_video_tick(void* data, float seconds) {
-    if (DEBUG) obs_log(LOG_INFO, "[GIT STATS] Ticking Source");
-    struct ft2_source* srcdata = data;
-    if (srcdata == NULL) return;
-    if (!srcdata->from_file || !srcdata->text_file) return;
-
-    if (os_gettime_ns() - srcdata->last_checked >= 1000000000) {
-        time_t t = get_modified_timestamp(srcdata->text_file);
-        srcdata->last_checked = os_gettime_ns();
-
-        if (srcdata->update_file) {
-            if (srcdata->log_mode)
-                read_from_end(srcdata, srcdata->text_file);
-            else
-                load_text_from_file(srcdata, srcdata->text_file);
-            cache_glyphs(srcdata, srcdata->text);
-            set_up_vertex_buffer(srcdata);
-            srcdata->update_file = false;
-        }
-
-        if (srcdata->m_timestamp != t) {
-            srcdata->m_timestamp = t;
-            srcdata->update_file = true;
-        }
-    }
-
-    UNUSED_PARAMETER(seconds);
-    if (DEBUG) obs_log(LOG_INFO, "[GIT STATS] Source Ticked");
-}
-
-void ft2_source_defaults(obs_data_t* settings, int ver) {
-    if (DEBUG) obs_log(LOG_INFO, "[GIT STATS] Getting Source Defaults");
-    const uint16_t font_size = ver == 1 ? 32 : 256;
-
-    obs_data_t* font_obj = obs_data_create();
-    obs_data_set_default_string(font_obj, "face", DEFAULT_FACE);
-    obs_data_set_default_int(font_obj, "size", font_size);
-    obs_data_set_default_int(font_obj, "flags", 0);
-    obs_data_set_default_string(font_obj, "style", "");
-    obs_data_set_default_obj(settings, "font", font_obj);
-    obs_data_release(font_obj);
-
-    obs_data_set_default_bool(settings, "antialiasing", true);
-    obs_data_set_default_bool(settings, "word_wrap", false);
-    obs_data_set_default_bool(settings, "outline", false);
-    obs_data_set_default_bool(settings, "drop_shadow", false);
-
-    obs_data_set_default_int(settings, "log_lines", 6);
-
-    obs_data_set_default_int(settings, "color1", 0xFFFFFFFF);
-    obs_data_set_default_int(settings, "color2", 0xFFFFFFFF);
-    if (DEBUG) obs_log(LOG_INFO, "[GIT STATS] Got Source Defaults");
-}
-
-void ft2_source_defaults_v1(obs_data_t* settings) {
-    ft2_source_defaults_v1(settings, 1);
-}
-
-void ft2_source_defaults_v2(obs_data_t* settings) {
-    ft2_source_defaults(settings, 2);
-}
-
-obs_properties_t* ft2_source_properties(void* unused) {
-    if (DEBUG) obs_log(LOG_INFO, "[GIT STATS] Getting Source Properties");
-    UNUSED_PARAMETER(unused);
-
-    obs_properties_t* props = obs_properties_create();
-    // obs_property_t *prop;
-
-    // TODO:
-    //	Scrolling. Can't think of a way to do it with the render
-    //		targets currently being broken. (0.4.2)
-    //	Better/pixel shader outline/drop shadow
-    //	Some way to pull text files from network, I dunno
-
-    obs_properties_add_font(props, "font", obs_module_text("Font"));
-
-    obs_property_t* from_file = obs_properties_add_list(
-        props, "from_file", obs_module_text("TextInputMode"),
-        OBS_COMBO_TYPE_RADIO, OBS_COMBO_FORMAT_BOOL);
-    obs_property_list_add_bool(
-        from_file, obs_module_text("TextInputMode.Manual"), false);
-    obs_property_list_add_bool(
-        from_file, obs_module_text("TextInputMode.FromFile"), true);
-    obs_property_set_modified_callback(from_file, from_file_modified);
-
-    obs_property_t* text_file = obs_properties_add_path(
-        props, "text_file", obs_module_text("TextFile"), OBS_PATH_FILE,
-        obs_module_text("TextFileFilter"), NULL);
-    obs_property_set_long_description(
-        text_file, obs_module_text("TextFile.Encoding"));
-
-    obs_properties_add_text(
-        props, "text", obs_module_text("Text"), OBS_TEXT_MULTILINE);
-
-    obs_properties_add_bool(
-        props, "antialiasing", obs_module_text("Antialiasing"));
-
-    obs_properties_add_bool(props, "log_mode", obs_module_text("ChatLogMode"));
-
-    obs_properties_add_int(
-        props, "log_lines", obs_module_text("ChatLogLines"), 1, 1000, 1);
-
-    obs_properties_add_color_alpha(props, "color1", obs_module_text("Color1"));
-
-    obs_properties_add_color_alpha(props, "color2", obs_module_text("Color2"));
-
-    obs_properties_add_bool(props, "outline", obs_module_text("Outline"));
-
-    obs_properties_add_bool(
-        props, "drop_shadow", obs_module_text("DropShadow"));
-
-    obs_properties_add_int(
-        props, "custom_width", obs_module_text("CustomWidth"), 0, 4096, 1);
-
-    obs_properties_add_bool(props, "word_wrap", obs_module_text("WordWrap"));
-
-    if (DEBUG) obs_log(LOG_INFO, "[GIT STATS] Got Source Properties");
-    return props;
-}
-
-obs_missing_files_t* ft2_missing_files(void* data) {
+static obs_missing_files_t* ft2_missing_files(void* data) {
     struct ft2_source* s = data;
     obs_missing_files_t* files = obs_missing_files_create();
 
@@ -517,4 +530,34 @@ obs_missing_files_t* ft2_missing_files(void* data) {
     obs_data_release(settings);
 
     return files;
+}
+
+static void ft2_source_defaults(obs_data_t* settings, int ver) {
+    const uint16_t font_size = ver == 1 ? 32 : 256;
+
+    obs_data_t* font_obj = obs_data_create();
+    obs_data_set_default_string(font_obj, "face", DEFAULT_FACE);
+    obs_data_set_default_int(font_obj, "size", font_size);
+    obs_data_set_default_int(font_obj, "flags", 0);
+    obs_data_set_default_string(font_obj, "style", "");
+    obs_data_set_default_obj(settings, "font", font_obj);
+    obs_data_release(font_obj);
+
+    obs_data_set_default_bool(settings, "antialiasing", true);
+    obs_data_set_default_bool(settings, "word_wrap", false);
+    obs_data_set_default_bool(settings, "outline", false);
+    obs_data_set_default_bool(settings, "drop_shadow", false);
+
+    obs_data_set_default_int(settings, "log_lines", 6);
+
+    obs_data_set_default_int(settings, "color1", 0xFFFFFFFF);
+    obs_data_set_default_int(settings, "color2", 0xFFFFFFFF);
+}
+
+static void ft2_source_defaults_v1(obs_data_t* settings) {
+    ft2_source_defaults(settings, 1);
+}
+
+static void ft2_source_defaults_v2(obs_data_t* settings) {
+    ft2_source_defaults(settings, 2);
 }
