@@ -30,7 +30,7 @@ FT_Library ft2_lib;
 OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE("text-freetype2", "en-US")
 MODULE_EXPORT const char* obs_module_description(void) {
-    return "FreeType2 text source";
+    return "Git Stats Text Source";
 }
 
 uint32_t texbuf_w = 2048, texbuf_h = 2048;
@@ -130,11 +130,12 @@ static uint32_t ft2_source_get_height(void* data) {
     return srcdata->cy + srcdata->outline_width;
 }
 
+// this is how we create settings
 static obs_properties_t* ft2_source_properties(void* unused) {
     UNUSED_PARAMETER(unused);
 
     obs_properties_t* props = obs_properties_create();
-    // obs_property_t *prop;
+    // obs_property_t* prop;
 
     // TODO:
     //	Scrolling. Can't think of a way to do it with the render
@@ -148,19 +149,12 @@ static obs_properties_t* ft2_source_properties(void* unused) {
         props, "text", obs_module_text("Text"), OBS_TEXT_MULTILINE);
 
     obs_properties_add_bool(
-        props, "from_file", obs_module_text("ReadFromFile"));
-
-    obs_properties_add_bool(
         props, "antialiasing", obs_module_text("Antialiasing"));
 
     obs_properties_add_bool(props, "log_mode", obs_module_text("ChatLogMode"));
 
     obs_properties_add_int(
         props, "log_lines", obs_module_text("ChatLogLines"), 1, 1000, 1);
-
-    obs_properties_add_path(
-        props, "text_file", obs_module_text("TextFile"), OBS_PATH_FILE,
-        obs_module_text("TextFileFilter"), NULL);
 
     obs_properties_add_color_alpha(props, "color1", obs_module_text("Color1"));
 
@@ -223,6 +217,7 @@ static void ft2_source_destroy(void* data) {
 
 static void ft2_source_render(void* data, gs_effect_t* effect) {
     struct ft2_source* srcdata = data;
+
     if (srcdata == NULL) return;
 
     if (srcdata->tex == NULL || srcdata->vbuf == NULL) return;
@@ -236,6 +231,7 @@ static void ft2_source_render(void* data, gs_effect_t* effect) {
         srcdata->vbuf, srcdata->tex, srcdata->draw_effect,
         (uint32_t)wcslen(srcdata->text) * 6);
 
+    // blog(LOG_WARNING, "ATTEMPTING TO RENDER");
     UNUSED_PARAMETER(effect);
 }
 
@@ -272,6 +268,7 @@ static bool init_font(struct ft2_source* srcdata) {
     const char* path = get_font_path(
         srcdata->font_name, srcdata->font_size, srcdata->font_style,
         srcdata->font_flags, &index);
+
     if (!path) return false;
 
     if (srcdata->font_face != NULL) {
@@ -282,6 +279,7 @@ static bool init_font(struct ft2_source* srcdata) {
     return FT_New_Face(ft2_lib, path, index, &srcdata->font_face) == 0;
 }
 
+// update configuration of source
 static void ft2_source_update(void* data, obs_data_t* settings) {
     struct ft2_source* srcdata = data;
     obs_data_t* font_obj = obs_data_get_obj(settings, "font");

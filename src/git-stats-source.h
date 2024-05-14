@@ -1,0 +1,1 @@
+struct obs_source_info git_stats_source;

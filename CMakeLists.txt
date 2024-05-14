@@ -4,6 +4,7 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/common/bootstrap.cmake" NO_POLICY_SCO
 
 project(${_name} VERSION ${_version})
 
+option(ENABLE_FREETYPE "Enable Freetype text plugin" ON)
 option(ENABLE_FRONTEND_API "Use obs-frontend-api for UI functionality" OFF)
 option(ENABLE_QT "Use Qt functionality" OFF)
 
@@ -12,8 +13,8 @@ include(defaults)
 include(helpers)
 
 add_library(${CMAKE_PROJECT_NAME} MODULE)
-
 find_package(libobs REQUIRED)
+
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::libobs)
 
 if(ENABLE_FRONTEND_API)
@@ -34,8 +35,7 @@ if(ENABLE_QT)
                AUTORCC ON)
 endif()
 
-target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/find-font.h src/obs-convenience.c src/text-functionality.c src/text-freetype2.c src/obs-convenience.h src/text-freetype2.h src/find-font-unix.c
-) 
-
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/git-stats.c src/support.h src/support.c src/git-stats-source.c)
+ 
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})
 
