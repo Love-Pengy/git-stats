@@ -4,8 +4,6 @@
 
 #include "support.h"
 
-int TEST_THRESHOLD = 10000;
-
 struct gitData {
     long added;
     long deleted;
@@ -24,6 +22,8 @@ struct gitStatsInfo {
     // time passed between the updates
     float time_passed;
 
+    int test;
+
     // the information that we get from our git stats thingy madonker
     struct gitData* data;
 };
@@ -33,13 +33,17 @@ static const char* git_stats_name(void* unused) {
     return (obs_module_text("GitStats"));
 }
 
+// create data for the source
 static void* git_stats_create(obs_data_t* settings, obs_source_t* source) {
     struct gitStatsInfo* info = bzalloc(sizeof(struct gitStatsInfo));
     info->time_passed = 0;
+    info->test = 0;
+    // the source itself
     info->gitSource = source;
 
     // id for the text source
     const char* text_source_id = "text_ft2_source\0";
+    // the text source
     info->textSource =
         obs_source_create(text_source_id, text_source_id, settings, NULL);
     obs_source_add_active_child(info->gitSource, info->textSource);
@@ -47,6 +51,7 @@ static void* git_stats_create(obs_data_t* settings, obs_source_t* source) {
     return (info);
 }
 
+// free up the source and its data
 static void git_stats_destroy(void* data) {
     struct gitStatsInfo* info = data;
 
@@ -60,18 +65,21 @@ static void git_stats_destroy(void* data) {
     bfree(info);
 }
 
+// get the width needed for the source
 static uint32_t git_stats_width(void* data) {
     struct gitStatsInfo* info = data;
 
     return (obs_source_get_width(info->textSource));
 }
 
+// get the height needed for the source
 static uint32_t git_stats_height(void* data) {
     struct gitStatsInfo* info = data;
 
     return (obs_source_get_height(info->textSource));
 }
 
+// set the settings defaults for the source
 static void git_stats_get_defaults(obs_data_t* settings) {
     obs_data_set_default_bool(settings, "unload", true);
     obs_data_set_default_bool(settings, "topheartrate", false);
@@ -86,14 +94,14 @@ static void git_stats_update(void* data, obs_data_t* settings) {
     UNUSED_PARAMETER(settings);
 }
 
+// render out the source
 static void git_stats_render(void* data, gs_effect_t* effect) {
-    obs_log(LOG_INFO, "FRAME RENDERED");
     struct gitStatsInfo* info = data;
     obs_source_video_render(info->textSource);
     UNUSED_PARAMETER(effect);
 }
 
-// called each frame with the time elapsed passed in
+// updates the data (called each frame with the time elapsed passed in)
 static void git_stats_tick(void* data, float seconds) {
     struct gitStatsInfo* info = data;
 
@@ -103,16 +111,22 @@ static void git_stats_tick(void* data, float seconds) {
     }
 
     info->time_passed += seconds;
-    if (((int)info->time_passed % TEST_THRESHOLD) == 0) {
-        obs_data_set_string(info->textSource->context.settings, "text", "one");
+    info->test += 1;
+
+    if (info->test > 500) {
+        obs_log(LOG_INFO, "%d", info->test);
+        // set the string in the text source
+        obs_data_set_string(info->textSource->context.settings, "text", "two");
     }
     else {
-        obs_log(LOG_INFO, "PLUGIN TICKED");
-        obs_data_set_string(info->textSource->context.settings, "text", "two");
-        info->time_passed = 0;
+        obs_data_set_string(info->textSource->context.settings, "text", "one");
     }
+    // force update the source (not calling this will keep the state of the
+    // previous value
+    obs_source_update(info->textSource, info->textSource->context.settings);
 }
 
+// what autogenerates the UI that I can get user data from (learn about this)
 static obs_properties_t* git_stats_properties(void* unused) {
     struct gitStatsInfo* info = unused;
 
