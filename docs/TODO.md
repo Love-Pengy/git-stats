@@ -57,7 +57,7 @@
   - ~~get the updating fixed~~
 
 - implement git diff into the plugin
-
+- reformat git-diff implementation to be a module and not a run file itself
 - add the ability to get untracked files
   - use this command to get the file path of the untracked files ```git ls-files --others --exclude-standard```
   - given the output of this command count the number of lines in that file at the current moment and store it in a hash table
