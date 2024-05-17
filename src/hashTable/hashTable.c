@@ -1,25 +1,25 @@
-#include "../include/hashTable.h"
+#include "hashTable.h"
 
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "../include/boardingPassExample.h"
+#include "untrackedFile.h"
 
 #define CONST_MULTIPLIER 287987
 int initialSize = 3;
 
 // example using border passes
 struct hashType {
-    boardingPass* passes;
+    untrackedFile* files;
     char** keys;
     int size;
 };
 
 void freeHashTable(hashTable* table) {
     for (int i = 0; i < (*table)->size; i++) {
-        free((*table)->passes[i]);
+        free((*table)->files[i]);
         free((*table)->keys[i]);
     }
     free((*table));
@@ -30,15 +30,15 @@ hashTable rehashHashTable(hashTable* table) {
     int oldMax = (*table)->size;
     int newSize = oldMax * 2;
     hashTable meow = malloc(sizeof(struct hashType));
-    meow->passes = malloc(sizeof(boardingPass) * newSize);
+    meow->files = malloc(sizeof(untrackedFile) * newSize);
     meow->keys = malloc(sizeof(char*) * newSize);
     meow->size = newSize;
     for (int i = 0; i < newSize; i++) {
-        meow->passes[i] = NULL;
+        meow->files[i] = NULL;
         meow->keys[i] = NULL;
     }
     for (int i = 0; i < oldMax; i++) {
-        addElementHT(&meow, (*table)->keys[i], (*table)->passes[i]);
+        addElementHT(&meow, (*table)->keys[i], (*table)->files[i]);
     }
     // freeHashTable(table);
     return (meow);
@@ -63,10 +63,10 @@ bool keyExists(hashTable table, char* key) {
 
 hashTable createHT(void) {
     hashTable meow = malloc(sizeof(struct hashType));
-    meow->passes = malloc(sizeof(boardingPass) * initialSize);
+    meow->files = malloc(sizeof(untrackedFile) * initialSize);
     meow->keys = malloc(sizeof(char*) * initialSize);
     for (int i = 0; i < initialSize; i++) {
-        meow->passes[i] = NULL;
+        meow->files[i] = NULL;
         meow->keys = malloc(sizeof(NULL) + 1);
         meow->keys[i] = NULL;
     }
@@ -93,13 +93,13 @@ int hashKey(char* key, int numCollisions, int tableSize) {
     return (hash + numCollisions);
 }
 
-void addElementHT(hashTable* table, char* key, boardingPass value) {
+void addElementHT(hashTable* table, char* key, untrackedFile value) {
     int numCollisions = 0;
     bool notFull = true;
     if ((*table) == NULL) {
     }
     else {
-        while ((*table)->passes[hashKey(key, numCollisions, (*table)->size)] !=
+        while ((*table)->files[hashKey(key, numCollisions, (*table)->size)] !=
                NULL) {
             if (numCollisions == (*table)->size) {
                 notFull = false;
@@ -108,9 +108,9 @@ void addElementHT(hashTable* table, char* key, boardingPass value) {
             numCollisions++;
         }
         if (notFull) {
-            (*table)->passes[hashKey(key, numCollisions, (*table)->size)] =
+            (*table)->files[hashKey(key, numCollisions, (*table)->size)] =
                 malloc(sizeof(struct hashType));
-            (*table)->passes[hashKey(key, numCollisions, (*table)->size)] =
+            (*table)->files[hashKey(key, numCollisions, (*table)->size)] =
                 value;
 
             (*table)->keys[hashKey(key, numCollisions, (*table)->size)] =
@@ -136,10 +136,10 @@ void removeElementHT(hashTable* table, char* key) {
             numCollisions++;
         }
         free((*table)->keys[hashKey(key, numCollisions, (*table)->size)]);
-        free((*table)->passes[hashKey(key, numCollisions, (*table)->size)]);
-        (*table)->passes[hashKey(key, numCollisions, (*table)->size)] =
+        free((*table)->files[hashKey(key, numCollisions, (*table)->size)]);
+        (*table)->files[hashKey(key, numCollisions, (*table)->size)] =
             malloc(sizeof(struct hashType));
-        (*table)->passes[hashKey(key, numCollisions, (*table)->size)] = NULL;
+        (*table)->files[hashKey(key, numCollisions, (*table)->size)] = NULL;
 
         (*table)->keys[hashKey(key, numCollisions, (*table)->size)] =
             malloc(sizeof(struct hashType));
@@ -147,13 +147,14 @@ void removeElementHT(hashTable* table, char* key) {
     }
 }
 
-boardingPass findValueHT(hashTable table, char* key) {
+untrackedFile findValueHT(hashTable table, char* key) {
     int numCollisions = 0;
     bool found = false;
-    if (table == NULL) {
+    if ((table == NULL) || !(keyExists(table, key))) {
         return (NULL);
     }
-    while (table->passes[hashKey(key, numCollisions, table->size)] != NULL) {
+
+    while (table->files[hashKey(key, numCollisions, table->size)] != NULL) {
         if ((!strcmp(
                 key, table->keys[hashKey(key, numCollisions, table->size)]))) {
             found = true;
@@ -167,7 +168,7 @@ boardingPass findValueHT(hashTable table, char* key) {
         numCollisions++;
     }
     if (found) {
-        return (table->passes[hashKey(key, numCollisions, table->size)]);
+        return (table->files[hashKey(key, numCollisions, table->size)]);
     }
     return (NULL);
 }
@@ -181,19 +182,19 @@ void printHT(hashTable table) {
             if (i == 0) {
                 printf(
                     "{ %s: %s, ", table->keys[i],
-                    boardingPassToString(table->passes[i]));
+                    untrackedFileToString(table->files[i]));
             }
 
             else if (i == (table->size - 1)) {
                 printf(
                     "%s: %s }\n", table->keys[i],
-                    boardingPassToString(table->passes[i]));
+                    untrackedFileToString(table->files[i]));
             }
 
             else {
                 printf(
                     "%s: %s, ", table->keys[i],
-                    boardingPassToString(table->passes[i]));
+                    untrackedFileToString(table->files[i]));
             }
         }
     }

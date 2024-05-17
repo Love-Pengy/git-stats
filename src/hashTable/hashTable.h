@@ -1,11 +1,11 @@
 #pragma once
-#include "../include/boardingPassExample.h"
-typedef struct hashType* hashTable;
+#include "untrackedFile.h"
 
+typedef struct hashType* hashTable;
 void freeHashTable(hashTable*);
 hashTable createHT(void);
-void addElementHT(hashTable*, char*, boardingPass);
+void addElementHT(hashTable*, char*, untrackedFile);
 void removeElementHT(hashTable*, char*);
-boardingPass findValueHT(hashTable, char*);
+untrackedFile findValueHT(hashTable, char*);
 void printHT(hashTable);
 hashTable rehashHashTable(hashTable*);

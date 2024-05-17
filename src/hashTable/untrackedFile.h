@@ -2,7 +2,8 @@
 
 typedef struct fileType* untrackedFile;
 
-untrackedFile createUntrackedFile(int, int, struct tm);
+struct tm getTimeEdited(untrackedFile);
+long getLinesAdded(untrackedFile);
+untrackedFile createUntrackedFile(char*);
 char* untrackedFileToString(untrackedFile);
 int getIdNum(untrackedFile);
-int getLinesAdded(untrackedFile);
