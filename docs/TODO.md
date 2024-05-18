@@ -55,6 +55,8 @@
   - ~~get the source to showup correctly~~
   - ~~get the rendering working correctly~~
   - ~~get the updating fixed~~
+- ~~create module for hash table implementation~~
+  - ~~create submodule for hash table input~~
 
 - implement git diff into the plugin
 - reformat git-diff implementation to be a module and not a run file itself
@@ -62,3 +64,16 @@
   - use this command to get the file path of the untracked files ```git ls-files --others --exclude-standard```
   - given the output of this command count the number of lines in that file at the current moment and store it in a hash table
   - add this to the count of insertions/deletions (depending on the original value)
+  - when getting these untracked files ignore executables
+
+## CURRENT PATH
+
+- NOTE: SPLIT THIS UP INTO EACH PART AND CALL THEM FROM THE SOURCE FILE
+  - as you've seen it gets very messy if doing everything in the source file
+- decide if I want hash table or hash map (leaning towards map)
+- put two hash tables or maps inside of the obs source data structure to represent both tracked and untracked files
+- create handlers for both untracked and tracked files
+  - for tracked you just need to get the info from the git diff output
+  - for untracked you need to actually go through and manage those
+- we interface with both or one of these handlers depending on what the use set the settings to
+  - ex. if the user does not want untracked files then we would never update the untracked portion of the data

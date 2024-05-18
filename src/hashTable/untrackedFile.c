@@ -34,6 +34,14 @@ struct fileType {
     long linesAdded;
 };
 
+void freeUntrackedFile(untrackedFile* file) {
+    free((*file)->path);
+    free(file);
+    file = NULL;
+}
+
+char* getUntrackedFilePath(untrackedFile file) { return (file->path); }
+
 struct tm* getModifiedTime(char* path) {
     struct stat attr;
     stat(path, &attr);
@@ -56,8 +64,6 @@ int getLinesInFile(char* path) {
     fclose(fptr);
     return (lineCount);
 }
-
-struct tm getTimeEdited(untrackedFile file) { return (file->lastEdited); }
 
 long getLinesAdded(untrackedFile file) { return (file->linesAdded); }
 
@@ -103,7 +109,7 @@ char* untrackedFileToString(untrackedFile file) {
     char* buffer = malloc(stringLength);
 
     char timeStr[200];
-    strftime(timeStr, sizeof(timeStr), "%I:%M", &(file->lastEdited));
+    strftime(timeStr, sizeof(timeStr), "%c", &(file->lastEdited));
     snprintf(
         buffer, (stringLength + 10), "{ %s: %s +%ld }", timeStr, file->path,
         file->linesAdded);

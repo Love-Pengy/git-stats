@@ -22,8 +22,6 @@ struct gitStatsInfo {
     // time passed between the updates
     float time_passed;
 
-    int test;
-
     // the information that we get from our git stats thingy madonker
     struct gitData* data;
 };
