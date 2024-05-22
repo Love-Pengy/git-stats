@@ -11,3 +11,5 @@ void addElementHM(hashMap*, char*, untrackedFile);
 untrackedFile findValueHM(hashMap, char*);
 void printHM(hashMap);
 void freeHM(hashMap*);
+void updateValueHM(hashMap*);
+long getLinesAddedHM(hashMap*);

@@ -15,6 +15,12 @@ hashMap createHashMap(void) {
     return (output);
 }
 
+long getLinesAddedHM(hashMap* map) {
+    return (getLinesAddedHT(&((*map)->table)));
+}
+
+void updateValueHM(hashMap* map) { autoUpdateValuesHT(&((*map)->table)); }
+
 void addElementHM(hashMap* map, char* key, untrackedFile value) {
     if ((*map) == NULL) {
     }

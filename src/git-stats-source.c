@@ -92,14 +92,25 @@ static void git_stats_get_defaults(obs_data_t* settings) {
     obs_data_set_default_bool(settings, "unload", true);
     obs_data_set_default_bool(settings, "topheartrate", false);
     obs_data_set_default_string(settings, "comport", "COM4");
+
+    obs_data_set_default_string(settings, "untracked_files", false);
 }
 
 // this runs when you update settings
 static void git_stats_update(void* data, obs_data_t* settings) {
-    struct gitStatsInfo* info = data;
+    // struct gitStatsInfo* info = data;
+    UNUSED_PARAMETER(data);
+    // obs_data_set_string(info->textSource->context.settings, "text", "N/A");
 
-    obs_data_set_string(info->textSource->context.settings, "text", "N/A");
-    UNUSED_PARAMETER(settings);
+    obs_log(LOG_INFO, obs_data_get_string(settings, "repos"));
+
+    /*
+        obs_properties_add_text(
+            props, "delay", "Delay Between Updates", OBS_TEXT_DEFAULT);
+
+        obs_properties_add_bool(
+            props, "untracked_files", "Account For Untracked Files");
+    */
 }
 
 // render out the source
@@ -128,7 +139,6 @@ static void git_stats_tick(void* data, float seconds) {
 static obs_properties_t* git_stats_properties(void* unused) {
     struct gitStatsInfo* info = unused;
     UNUSED_PARAMETER(unused);
-    // obs_properties_create()
     obs_properties_t* props = obs_source_properties(info->textSource);
 
     // remove certain properties from the freetype text source
@@ -137,14 +147,16 @@ static obs_properties_t* git_stats_properties(void* unused) {
     obs_properties_remove_by_name(props, "from_file");
     obs_properties_remove_by_name(props, "log_mode");
     obs_properties_remove_by_name(props, "log_lines");
-    obs_properties_remove_by_name(props, "TextFile.Encoding");
+    obs_properties_remove_by_name(props, "word_wrap");
 
-    /*
-    obs_properties_add_text(props, "comport", "COM port", OBS_TEXT_DEFAULT);
+    obs_properties_add_text(
+        props, "repos", "Tracked Repositiories", OBS_TEXT_MULTILINE);
+
+    obs_properties_add_text(
+        props, "delay", "Delay Between Updates", OBS_TEXT_DEFAULT);
 
     obs_properties_add_bool(
-        props, "topheartrate", "Show top heart rate record");
-    */
+        props, "untracked_files", "Account For Untracked Files");
 
     return props;
 }

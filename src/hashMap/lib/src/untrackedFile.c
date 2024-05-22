@@ -73,10 +73,15 @@ void freeUntrackedFile(untrackedFile* file) {
 }
 
 int getLinesInFile(char* path) {
+    if (path == NULL) {
+        return (0);
+    }
     FILE* fptr;
     errno = 0;
     fptr = fopen(path, "r");
-    assert(fptr != NULL);
+    if (fptr == NULL) {
+        return (0);
+    }
 
     char buffer[MAX_LINE_LENGTH];
     int lineCount = 0;
@@ -105,6 +110,9 @@ untrackedFile createUntrackedFile(char* filePath) {
 }
 
 void updateUntrackedFile(untrackedFile* file) {
+    if (file == NULL) {
+        return;
+    }
     // convert tm structs into time_t so I can use difftime
     time_t time1 = mktime(&((*file)->lastEdited));
     struct tm newTime = *(getModifiedTime((*file)->path));

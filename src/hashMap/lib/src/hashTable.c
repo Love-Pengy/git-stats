@@ -17,6 +17,25 @@ struct hashType {
     int size;
 };
 
+long getLinesAddedHT(hashTable* table) {
+    long added = 0;
+    for (int i = 0; i < (*table)->size; i++) {
+        added += getLinesAdded((*table)->files[i]);
+    }
+    return (added);
+}
+
+void autoUpdateValuesHT(hashTable* table) {
+    for (int i = 0; i < (*table)->size; i++) {
+        if ((*table)->keys[i] == NULL) {
+            continue;
+        }
+        else {
+            updateUntrackedFile(&((*table)->files[i]));
+        }
+    }
+}
+
 void updateValueHT(hashTable* table, char* key, untrackedFile value) {
     for (int i = 0; i < (*table)->size; i++) {
         if ((*table)->keys[i] == NULL) {

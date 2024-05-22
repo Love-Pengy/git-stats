@@ -77,15 +77,19 @@
   - ~~replaced this with one hashmap and an array of paths because tracked files only need the paths~~
 - ~~update hashtable and hashmap to be taking untracked files instead of boarding passes~~
 - ~~update the CMakeLists file to include the hashmap library~~
-- get rid of the following properties for the text source:
-  - text
-  - read from file
-  - chat log mode
-  - chat log lines
-  - text file
+- ~~get rid of the following properties for the text source:~~
+  - ~~text~~
+  - ~~read from file~~
+  - ~~chat log mode~~
+  - ~~chat log lines~~
+  - ~~text file~~
 
 - create handlers for both untracked and tracked files
   - for tracked you just need to get the info from the git diff output
   - for untracked you need to actually go through and manage those
+
+- when calling the update function for the source, when gettings the repos you must delimit the string by newlines in order to get the paths
 - we interface with both or one of these handlers depending on what the use set the settings to
   - ex. if the user does not want untracked files then we would never update the untracked portion of the data
+- reorder the properties so that the text properties are at the bottom
+- figure out a way to do popups or something else for the user so they know when errors have happened

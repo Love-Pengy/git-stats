@@ -7,7 +7,8 @@
 #include <string.h>
 #include <sys/types.h>
 
-bool UNTRACKED_FILES = true;
+#include "./hashMap/include/hashMap.h"
+#include "git-stats-source.h"
 
 bool checkInsertions(char* input) {
     char* tmpString = malloc(sizeof(char) * strlen(input) + 1);
@@ -82,40 +83,40 @@ void checkAllPaths(int numPaths, char** paths) {
 
         if (errno) {
             printf("%s: Is Not A Git Repository\n", buffer);
-            exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
 
         closedir(dptr);
     }
 }
 
-int main(int argc, char* argv[]) {
-    // in the case that we just called the executable
-    assert(argc != 1);
-
+void updateGitData(struct gitData* data) {
     FILE* fp;
     char output[1000];
 
     fflush(stdout);
 
-    checkAllPaths(argc, argv);
+    checkAllPaths(data->numTrackedFiles, data->trackedFiles);
 
-    for (int i = 1; i < argc; i++) {
+    for (int i = 1; i < data->numTrackedFiles; i++) {
         // do this for all items within the structure::
         int commandLength =
-            (strlen("/usr/bin/git -C ") + strlen(argv[i]) +
+            (strlen("/usr/bin/git -C ") + strlen(data->trackedFiles[i]) +
              strlen(" diff --no-pager --shortstat") + 1);
 
         char* command = malloc(sizeof(char) * commandLength);
         command[0] = '\0';
 
         snprintf(
-            command, commandLength, "%s %s %s", "/usr/bin/git -C", argv[i],
-            "diff --shortstat");
+            command, commandLength, "%s %s %s", "/usr/bin/git -C",
+            data->trackedFiles[i], "diff --shortstat");
 
         fp = popen(command, "r");
 
-        assert(fp != NULL);
+        if (fp == NULL) {
+            continue;
+        }
+        // assert(fp != NULL);
 
         bool validOutput;
         long insertions = 0;
@@ -128,10 +129,18 @@ int main(int argc, char* argv[]) {
                 printf("%ld, %ld\n", insertions, deletions);
             }
             else {
-                assert(validOutput != true);
-                exit(EXIT_FAILURE);
+                // assert(validOutput != true);
+                pclose(fp);
+                continue;
+                // exit(EXIT_FAILURE);
             }
         }
         pclose(fp);
     }
+    if (data->untracked != NULL) {
+        updateValueHM(&(data->untracked));
+        data->added += getLinesAddedHM(data->untracked);
+    }
+    data->added = insertions;
+    data->deleted = deletions;
 }

@@ -9,3 +9,4 @@ long getLinesAdded(untrackedFile);
 untrackedFile createUntrackedFile(char*);
 char* untrackedFileToString(untrackedFile);
 void copyUntrackedFile(untrackedFile*, untrackedFile*);
+void updateUntrackedFile(untrackedFile*);

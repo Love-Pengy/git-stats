@@ -11,3 +11,5 @@ untrackedFile findValueHT(hashTable, char*);
 void printHT(hashTable);
 void rehashHashTable(hashTable*);
 void updateValueHT(hashTable*, char*, untrackedFile);
+void autoUpdateValuesHT(hashTable*);
+long getLinesAddedHT(hashTable*);
