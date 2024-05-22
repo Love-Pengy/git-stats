@@ -1,5 +1,5 @@
 
-#include "untrackedFile.h"
+#include "../include/untrackedFile.h"
 
 #include <assert.h>
 #include <errno.h>
@@ -34,18 +34,42 @@ struct fileType {
     long linesAdded;
 };
 
-void freeUntrackedFile(untrackedFile* file) {
-    free((*file)->path);
-    free(file);
-    file = NULL;
-}
+void copyUntrackedFile(untrackedFile* dest, untrackedFile* src) {
+    if ((*src) == NULL) {
+        (*dest) = NULL;
+        return;
+    }
 
-char* getUntrackedFilePath(untrackedFile file) { return (file->path); }
+    (*dest) = malloc(sizeof(struct fileType));
+
+    //(*dest)->lastEdited = malloc(sizeof(struct tm));
+    (*dest)->lastEdited.tm_sec = (*src)->lastEdited.tm_sec;
+    (*dest)->lastEdited.tm_min = (*src)->lastEdited.tm_min;
+    (*dest)->lastEdited.tm_hour = (*src)->lastEdited.tm_hour;
+    (*dest)->lastEdited.tm_mday = (*src)->lastEdited.tm_mday;
+    (*dest)->lastEdited.tm_wday = (*src)->lastEdited.tm_wday;
+    (*dest)->lastEdited.tm_mon = (*src)->lastEdited.tm_mon;
+    (*dest)->lastEdited.tm_year = (*src)->lastEdited.tm_year;
+    (*dest)->lastEdited.tm_yday = (*src)->lastEdited.tm_yday;
+    (*dest)->lastEdited.tm_isdst = (*src)->lastEdited.tm_isdst;
+
+    (*dest)->path = malloc(sizeof(char) * (strlen((*src)->path) + 1));
+    (*dest)->path = strdup((*src)->path);
+
+    (*dest)->linesAdded = (*src)->linesAdded;
+}
 
 struct tm* getModifiedTime(char* path) {
     struct stat attr;
     stat(path, &attr);
     return (localtime(&attr.st_mtime));
+}
+
+void freeUntrackedFile(untrackedFile* file) {
+    free(&((*file)->lastEdited));
+    free((*file)->path);
+    free(file);
+    file = NULL;
 }
 
 int getLinesInFile(char* path) {
@@ -64,6 +88,8 @@ int getLinesInFile(char* path) {
     fclose(fptr);
     return (lineCount);
 }
+
+struct tm getTimeEdited(untrackedFile file) { return (file->lastEdited); }
 
 long getLinesAdded(untrackedFile file) { return (file->linesAdded); }
 
@@ -109,7 +135,7 @@ char* untrackedFileToString(untrackedFile file) {
     char* buffer = malloc(stringLength);
 
     char timeStr[200];
-    strftime(timeStr, sizeof(timeStr), "%c", &(file->lastEdited));
+    strftime(timeStr, sizeof(timeStr), "%I:%M", &(file->lastEdited));
     snprintf(
         buffer, (stringLength + 10), "{ %s: %s +%ld }", timeStr, file->path,
         file->linesAdded);

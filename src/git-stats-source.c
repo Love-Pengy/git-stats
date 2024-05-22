@@ -2,12 +2,15 @@
 #include <obs-module.h>
 #include <obs-source.h>
 
+#include "./hashMap/include/hashMap.h"
 #include "support.h"
 
 struct gitData {
+    hashMap untracked;
+    char** trackedPaths;
+    int numTrackedFiles;
     long added;
     long deleted;
-    char** paths;
 };
 
 struct gitStatsInfo {
@@ -35,12 +38,19 @@ static const char* git_stats_name(void* unused) {
 static void* git_stats_create(obs_data_t* settings, obs_source_t* source) {
     struct gitStatsInfo* info = bzalloc(sizeof(struct gitStatsInfo));
     info->time_passed = 0;
-    info->test = 0;
     // the source itself
     info->gitSource = source;
 
     // id for the text source
     const char* text_source_id = "text_ft2_source\0";
+
+    info->data = bzalloc(sizeof(struct gitData));
+    info->data->trackedPaths = NULL;
+    info->data->numTrackedFiles = 0;
+    info->data->untracked = createHashMap();
+    info->data->added = 0;
+    info->data->deleted = 0;
+
     // the text source
     info->textSource =
         obs_source_create(text_source_id, text_source_id, settings, NULL);
@@ -56,6 +66,13 @@ static void git_stats_destroy(void* data) {
     obs_source_remove(info->textSource);
     obs_source_release(info->textSource);
     info->textSource = NULL;
+
+    /*
+    freeHM(&(info->data->untracked));
+    for (int i = 0; i < info->data->numTrackedFiles; i++) {
+        free(info->data->trackedPaths[i]);
+    }
+    */
 
     bfree(info->data);
     info->data = NULL;
@@ -109,26 +126,17 @@ static void git_stats_tick(void* data, float seconds) {
     }
 
     info->time_passed += seconds;
-    info->test += 1;
 
-    if (info->test > 500) {
-        obs_log(LOG_INFO, "%d", info->test);
-        // set the string in the text source
-        obs_data_set_string(info->textSource->context.settings, "text", "two");
-    }
-    else {
-        obs_data_set_string(info->textSource->context.settings, "text", "one");
-    }
-    // force update the source (not calling this will keep the state of the
-    // previous value
+    obs_data_set_string(info->textSource->context.settings, "text", "two");
     obs_source_update(info->textSource, info->textSource->context.settings);
 }
 
 // what autogenerates the UI that I can get user data from (learn about this)
 static obs_properties_t* git_stats_properties(void* unused) {
-    struct gitStatsInfo* info = unused;
-
-    obs_properties_t* props = obs_source_properties(info->textSource);
+    // struct gitStatsInfo* info = unused;
+    UNUSED_PARAMETER(unused);
+    obs_properties_t* props =
+        obs_properties_create();  //= obs_source_properties(info->textSource);
 
     obs_properties_add_text(props, "comport", "COM port", OBS_TEXT_DEFAULT);
 

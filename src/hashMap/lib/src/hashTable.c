@@ -1,14 +1,14 @@
-#include "hashTable.h"
+#include "../include/hashTable.h"
 
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "untrackedFile.h"
+#include "../include/untrackedFile.h"
 
 #define CONST_MULTIPLIER 287987
-int initialSize = 3;
+int initialSize = 10;
 
 // example using border passes
 struct hashType {
@@ -17,31 +17,74 @@ struct hashType {
     int size;
 };
 
+void updateValueHT(hashTable* table, char* key, untrackedFile value) {
+    for (int i = 0; i < (*table)->size; i++) {
+        if ((*table)->keys[i] == NULL) {
+            continue;
+        }
+        if (!strcmp((*table)->keys[i], key)) {
+            (*table)->files[i] = value;
+            break;
+        }
+    }
+}
+
 void freeHashTable(hashTable* table) {
     for (int i = 0; i < (*table)->size; i++) {
-        free((*table)->files[i]);
+        freeUntrackedFile(&((*table)->files[i]));
         free((*table)->keys[i]);
     }
     free((*table));
     (*table) = NULL;
 }
 
-hashTable rehashHashTable(hashTable* table) {
+// deep copy value in hash table into dest
+void copyHashTable(hashTable* dest, hashTable* src) {
+    if ((*src) == NULL) {
+        (*dest) = NULL;
+        return;
+    }
+    (*dest)->size = (*src)->size;
+    for (int i = 0; i < (*src)->size; i++) {
+        // if pass is null key must be null
+        if ((*src)->files[i] == NULL) {
+            continue;
+        }
+        (*dest)->files[i] = malloc(sizeof(untrackedFile));
+        copyUntrackedFile(&((*dest)->files[i]), &((*src)->files[i]));
+        (*dest)->keys[i] = strdup((*src)->keys[i]);
+    }
+}
+
+void rehashHashTable(hashTable* table) {
     int oldMax = (*table)->size;
     int newSize = oldMax * 2;
-    hashTable meow = malloc(sizeof(struct hashType));
-    meow->files = malloc(sizeof(untrackedFile) * newSize);
-    meow->keys = malloc(sizeof(char*) * newSize);
-    meow->size = newSize;
+    hashTable oldHT = malloc(sizeof(struct hashType));
+    oldHT->files = malloc(sizeof(untrackedFile) * oldMax);
+    oldHT->keys = malloc(sizeof(char*) * oldMax);
+    for (int i = 0; i < initialSize; i++) {
+        oldHT->files[i] = NULL;
+        oldHT->keys[i] = NULL;
+    }
+    oldHT->size = oldMax;
+
+    copyHashTable(&oldHT, table);
+
+    (*table)->files = malloc(sizeof(untrackedFile) * newSize);
+    (*table)->keys = malloc(sizeof(char*) * newSize);
+    (*table)->size = newSize;
     for (int i = 0; i < newSize; i++) {
-        meow->files[i] = NULL;
-        meow->keys[i] = NULL;
+        (*table)->files[i] = NULL;
+        (*table)->keys[i] = NULL;
     }
+
     for (int i = 0; i < oldMax; i++) {
-        addElementHT(&meow, (*table)->keys[i], (*table)->files[i]);
+        if (oldHT->keys[i] != NULL) {
+            addElementHT(table, oldHT->keys[i], oldHT->files[i]);
+        }
     }
-    // freeHashTable(table);
-    return (meow);
+
+    free(oldHT);
 }
 
 bool keyExists(hashTable table, char* key) {
@@ -67,7 +110,6 @@ hashTable createHT(void) {
     meow->keys = malloc(sizeof(char*) * initialSize);
     for (int i = 0; i < initialSize; i++) {
         meow->files[i] = NULL;
-        meow->keys = malloc(sizeof(NULL) + 1);
         meow->keys[i] = NULL;
     }
     meow->size = initialSize;
@@ -76,7 +118,7 @@ hashTable createHT(void) {
 
 int asciiSum(char* string) {
     int val = 0;
-    for (int i = 0; i < strlen(string); i++) {
+    for (int i = 0; i < (int)strlen(string); i++) {
         val += (int)string[i];
     }
     return (val);
@@ -109,7 +151,7 @@ void addElementHT(hashTable* table, char* key, untrackedFile value) {
         }
         if (notFull) {
             (*table)->files[hashKey(key, numCollisions, (*table)->size)] =
-                malloc(sizeof(struct hashType));
+                malloc(sizeof(untrackedFile));
             (*table)->files[hashKey(key, numCollisions, (*table)->size)] =
                 value;
 
@@ -121,6 +163,7 @@ void addElementHT(hashTable* table, char* key, untrackedFile value) {
         }
     }
 }
+
 void removeElementHT(hashTable* table, char* key) {
     int numCollisions = 0;
 
@@ -136,9 +179,10 @@ void removeElementHT(hashTable* table, char* key) {
             numCollisions++;
         }
         free((*table)->keys[hashKey(key, numCollisions, (*table)->size)]);
-        free((*table)->files[hashKey(key, numCollisions, (*table)->size)]);
+        freeUntrackedFile(
+            &((*table)->files[hashKey(key, numCollisions, (*table)->size)]));
         (*table)->files[hashKey(key, numCollisions, (*table)->size)] =
-            malloc(sizeof(struct hashType));
+            malloc(sizeof(untrackedFile));
         (*table)->files[hashKey(key, numCollisions, (*table)->size)] = NULL;
 
         (*table)->keys[hashKey(key, numCollisions, (*table)->size)] =
@@ -153,7 +197,6 @@ untrackedFile findValueHT(hashTable table, char* key) {
     if ((table == NULL) || !(keyExists(table, key))) {
         return (NULL);
     }
-
     while (table->files[hashKey(key, numCollisions, table->size)] != NULL) {
         if ((!strcmp(
                 key, table->keys[hashKey(key, numCollisions, table->size)]))) {

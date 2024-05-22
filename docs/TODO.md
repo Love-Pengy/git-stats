@@ -68,10 +68,15 @@
 
 ## CURRENT PATH
 
+- ~~test updateValue in the hash table~~
 - NOTE: SPLIT THIS UP INTO EACH PART AND CALL THEM FROM THE SOURCE FILE
   - as you've seen it gets very messy if doing everything in the source file
-- decide if I want hash table or hash map (leaning towards map)
-- put two hash tables or maps inside of the obs source data structure to represent both tracked and untracked files
+
+- ~~decide if I want hash table or hash map (leaning towards map)~~
+- ~~put two hash tables or maps inside of the obs source data structure to represent both tracked and untracked files~~
+  - ~~replaced this with one hashmap and an array of paths because tracked files only need the paths~~
+- update hashtable and hashmap to be taking untracked files instead of boarding passes
+- update the CMakeLists file to include the hashmap library
 - create handlers for both untracked and tracked files
   - for tracked you just need to get the info from the git diff output
   - for untracked you need to actually go through and manage those
