@@ -67,13 +67,6 @@ static void git_stats_destroy(void* data) {
     obs_source_release(info->textSource);
     info->textSource = NULL;
 
-    /*
-    freeHM(&(info->data->untracked));
-    for (int i = 0; i < info->data->numTrackedFiles; i++) {
-        free(info->data->trackedPaths[i]);
-    }
-    */
-
     bfree(info->data);
     info->data = NULL;
 
@@ -133,15 +126,25 @@ static void git_stats_tick(void* data, float seconds) {
 
 // what autogenerates the UI that I can get user data from (learn about this)
 static obs_properties_t* git_stats_properties(void* unused) {
-    // struct gitStatsInfo* info = unused;
+    struct gitStatsInfo* info = unused;
     UNUSED_PARAMETER(unused);
-    obs_properties_t* props =
-        obs_properties_create();  //= obs_source_properties(info->textSource);
+    // obs_properties_create()
+    obs_properties_t* props = obs_source_properties(info->textSource);
 
+    // remove certain properties from the freetype text source
+    obs_properties_remove_by_name(props, "text");
+    obs_properties_remove_by_name(props, "text_file");
+    obs_properties_remove_by_name(props, "from_file");
+    obs_properties_remove_by_name(props, "log_mode");
+    obs_properties_remove_by_name(props, "log_lines");
+    obs_properties_remove_by_name(props, "TextFile.Encoding");
+
+    /*
     obs_properties_add_text(props, "comport", "COM port", OBS_TEXT_DEFAULT);
 
     obs_properties_add_bool(
         props, "topheartrate", "Show top heart rate record");
+    */
 
     return props;
 }
