@@ -108,7 +108,6 @@ char* formatEndPathChar(char* formatee) {
 void checkAllPaths(int numPaths, char** paths) {
     DIR* dptr;
     char* buffer;
-    printf("TEST: %d\n", numPaths);
     for (int i = 0; i < numPaths; i++) {
         // check if the directory exists
         errno = 0;
@@ -125,7 +124,6 @@ void checkAllPaths(int numPaths, char** paths) {
             printf("%s: Is Not A Git Repository\n", buffer);
             // exit(EXIT_FAILURE);
         }
-
         closedir(dptr);
     }
 }
@@ -180,6 +178,7 @@ void updateTrackedFiles(struct gitData* data) {
     if (data->untracked != NULL) {
         updateValueHM(&(data->untracked));
         data->added += getLinesAddedHM(&(data->untracked));
+        printf("DO WE GET DOWN HERE?\n");
     }
     data->added += insertions;
     data->deleted += deletions;

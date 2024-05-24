@@ -20,6 +20,9 @@ struct hashType {
 long getLinesAddedHT(hashTable* table) {
     long added = 0;
     for (int i = 0; i < (*table)->size; i++) {
+        if ((*table)->files[i] == NULL) {
+            continue;
+        }
         added += getLinesAdded((*table)->files[i]);
     }
     return (added);
