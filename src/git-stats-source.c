@@ -1,18 +1,24 @@
+
+#include "./git-stats-source.h"
+
 #include <obs-internal.h>
 #include <obs-module.h>
 #include <obs-source.h>
+#include <stdlib.h>
 
+#include "./git-diff-interface.h"
 #include "./hashMap/include/hashMap.h"
 #include "support.h"
+int MAXNUMPATHS = 25;
 
-struct gitData {
-    hashMap untracked;
-    char** trackedPaths;
-    int numTrackedFiles;
-    long added;
-    long deleted;
-};
-
+// LOG_ERROR: for errors that don't require the program to exit
+// LOG_WARNING: when error occurs and is recoverable
+// LOG_INFO: info for whats going on
+// LOG_DEBUG: use for debug //// only sent when debug is true
+// for debugging general issues
+#define DEBUG_LOG 0
+// for debugging seg faults
+#define DEBUG_PRINT 0
 struct gitStatsInfo {
     // pointer to the text source
     obs_source_t* textSource;
@@ -56,6 +62,8 @@ static void* git_stats_create(obs_data_t* settings, obs_source_t* source) {
         obs_source_create(text_source_id, text_source_id, settings, NULL);
     obs_source_add_active_child(info->gitSource, info->textSource);
 
+    obs_log(LOG_INFO, "Source Created");
+
     return (info);
 }
 
@@ -71,6 +79,8 @@ static void git_stats_destroy(void* data) {
     info->data = NULL;
 
     bfree(info);
+
+    obs_log(LOG_INFO, "Source Destroyed");
 }
 
 // get the width needed for the source
@@ -89,28 +99,79 @@ static uint32_t git_stats_height(void* data) {
 
 // set the settings defaults for the source
 static void git_stats_get_defaults(obs_data_t* settings) {
-    obs_data_set_default_bool(settings, "unload", true);
-    obs_data_set_default_bool(settings, "topheartrate", false);
-    obs_data_set_default_string(settings, "comport", "COM4");
+    obs_data_set_default_bool(settings, "untracked_files", false);
+    obs_data_set_default_string(settings, "delay", "5");
+}
 
-    obs_data_set_default_string(settings, "untracked_files", false);
+// takes string and delimits it by newline chars
+char** segmentString(char* string, int* numPaths) {
+    if (string == NULL) {
+        return (NULL);
+        *numPaths = 0;
+    }
+    char* tmpString = malloc(sizeof(char) * (strlen(string) + 1));
+    tmpString[0] = '\0';
+    strcpy(tmpString, string);
+    char* buffer;
+    char** paths = malloc(sizeof(char*) * MAXNUMPATHS);
+    buffer = strtok(tmpString, "\n");
+    int count = 0;
+    while (buffer != NULL) {
+        paths[count] = malloc(sizeof(char) * (strlen(buffer) + 1));
+        strcpy(paths[count], buffer);
+        count++;
+        buffer = strtok(NULL, "\n");
+    }
+    for (int i = count; i < MAXNUMPATHS; i++) {
+        paths[i] = NULL;
+    }
+    *numPaths = count + 1;
+    return (paths);
 }
 
 // this runs when you update settings
 static void git_stats_update(void* data, obs_data_t* settings) {
-    // struct gitStatsInfo* info = data;
+    if (DEBUG_LOG) {
+        obs_log(LOG_DEBUG, "SOURCE SETTINGS UPDATED");
+    }
+    else if (DEBUG_PRINT) {
+        printf("SOURCE SETTINGS UPDATED\n");
+        fflush(stdout);
+    }
+
+    struct gitStatsInfo* info = data;
     UNUSED_PARAMETER(data);
-    // obs_data_set_string(info->textSource->context.settings, "text", "N/A");
 
-    obs_log(LOG_INFO, obs_data_get_string(settings, "repos"));
+    char* allRepos = malloc(
+        sizeof(char) * (strlen(obs_data_get_string(settings, "repos")) + 1));
+    allRepos[0] = '\0';
 
-    /*
-        obs_properties_add_text(
-            props, "delay", "Delay Between Updates", OBS_TEXT_DEFAULT);
+    strcpy(allRepos, obs_data_get_string(settings, "repos"));
+    if (allRepos == NULL) {
+        obs_data_set_string(info->textSource->context.settings, "text", "");
+    }
 
-        obs_properties_add_bool(
-            props, "untracked_files", "Account For Untracked Files");
-    */
+    else {
+        int* amtHold = NULL;
+        info->data->trackedPaths = segmentString(allRepos, amtHold);
+        info->data->numTrackedFiles = *amtHold;
+    }
+
+    info->data->delayAmount = atoi(obs_data_get_string(settings, "delay"));
+
+    if (obs_data_get_bool(settings, "untracked_files")) {
+        createUntrackedFilesHM(info->data);
+        updateValueHM(&(info->data->untracked));
+        info->data->added += getLinesAddedHM(&(info->data->untracked));
+        printf("TEST: FINISHED HANDLING UNTRACKED FILES\n");
+    }
+    if (DEBUG_LOG) {
+        obs_log(LOG_DEBUG, "Git Stats Source Updated");
+    }
+    else if (DEBUG_PRINT) {
+        printf("GIT STATS SOURCE UPDATED\n");
+        fflush(stdout);
+    }
 }
 
 // render out the source
@@ -122,6 +183,13 @@ static void git_stats_render(void* data, gs_effect_t* effect) {
 
 // updates the data (called each frame with the time elapsed passed in)
 static void git_stats_tick(void* data, float seconds) {
+    if (DEBUG_LOG) {
+        obs_log(LOG_DEBUG, "SOURCE STARTING TO TICK");
+    }
+    else if (DEBUG_PRINT) {
+        printf("SOURCE STARTING TO TICK\n");
+        fflush(stdout);
+    }
     struct gitStatsInfo* info = data;
 
     // don't update if the source isn't active
@@ -130,9 +198,25 @@ static void git_stats_tick(void* data, float seconds) {
     }
 
     info->time_passed += seconds;
-
-    obs_data_set_string(info->textSource->context.settings, "text", "two");
+    if (info->data->trackedPaths == NULL) {
+        obs_data_set_string(info->textSource->context.settings, "text", "");
+    }
+    else {
+        updateTrackedFiles(info->data);
+        updateValueHM(&(info->data->untracked));
+        obs_data_set_string(
+            info->textSource->context.settings, "text",
+            ltoa(info->data->added));
+    }
     obs_source_update(info->textSource, info->textSource->context.settings);
+
+    if (DEBUG_LOG) {
+        obs_log(LOG_DEBUG, "Git Stats Source Ticked");
+    }
+    else if (DEBUG_PRINT) {
+        printf("GIT STATS SOURCE TICKED\n");
+        fflush(stdout);
+    }
 }
 
 // what autogenerates the UI that I can get user data from (learn about this)
@@ -150,7 +234,7 @@ static obs_properties_t* git_stats_properties(void* unused) {
     obs_properties_remove_by_name(props, "word_wrap");
 
     obs_properties_add_text(
-        props, "repos", "Tracked Repositiories", OBS_TEXT_MULTILINE);
+        props, "repos", "Repositiories", OBS_TEXT_MULTILINE);
 
     obs_properties_add_text(
         props, "delay", "Delay Between Updates", OBS_TEXT_DEFAULT);

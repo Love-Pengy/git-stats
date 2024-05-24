@@ -35,7 +35,7 @@ if(ENABLE_QT)
                AUTORCC ON)
 endif()
 
-target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/git-stats.c src/support.h src/support.c src/git-stats-source.c src/hashMap/include/hashMap.h src/hashMap/src/hashMap.c src/hashMap/lib/include/hashTable.h src/hashMap/lib/include/untrackedFile.h src/hashMap/lib/src/hashTable.c src/hashMap/lib/src/untrackedFile.c)
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/git-stats.c src/support.h src/support.c src/git-stats-source.c src/hashMap/include/hashMap.h src/hashMap/src/hashMap.c src/hashMap/lib/include/hashTable.h src/hashMap/lib/include/untrackedFile.h src/hashMap/lib/src/hashTable.c src/hashMap/lib/src/untrackedFile.c src/git-diff-interface.h src/git-diff-interface.c)
  
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})
 

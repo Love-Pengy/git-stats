@@ -84,7 +84,7 @@
   - ~~chat log lines~~
   - ~~text file~~
 
-- create handlers for both untracked and tracked files
+- create handlers for both untracked and tracked files (THIS IS GOING TO BE IN THE UPDATE FUNCTION)
   - for tracked you just need to get the info from the git diff output
   - for untracked you need to actually go through and manage those
 

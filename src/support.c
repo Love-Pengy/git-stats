@@ -20,3 +20,24 @@ void obs_log(int log_level, const char* format, ...) {
 
     free(template);
 }
+
+char* ltoa(long input) {
+    // get a given value by dividing by a multiple of 10
+    //  check if it's the end by first getting the lenght by seeing if it
+    //  divides by a multiple without being a fraction
+    long currProduct = 1;
+    int index = 0;
+    char* output = malloc(sizeof(char) * 22);
+    output[0] = '\0';
+    if (input == 0) {
+        output[0] = '0';
+        output[1] = '\0';
+    }
+    while (!((input / currProduct) < 1)) {
+        output[index] = ((input / currProduct) % 10);
+        output[index + 1] = '\0';
+        currProduct *= 10;
+        index++;
+    }
+    return (output);
+}
