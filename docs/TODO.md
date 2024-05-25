@@ -83,13 +83,19 @@
   - ~~chat log mode~~
   - ~~chat log lines~~
   - ~~text file~~
+- ~~when calling the update function for the source, when gettings the repos you must delimit the string by newlines in order to get the paths~~
+- ~~we interface with both or one of these handlers depending on what the use set the settings to~~
+  - ~~ex. if the user does not want untracked files then we would never update the untracked portion of the data~~
+- ~~expand the ~ into an absolute path~~
 
 - create handlers for both untracked and tracked files (THIS IS GOING TO BE IN THE UPDATE FUNCTION)
   - for tracked you just need to get the info from the git diff output
   - for untracked you need to actually go through and manage those
 
-- when calling the update function for the source, when gettings the repos you must delimit the string by newlines in order to get the paths
-- we interface with both or one of these handlers depending on what the use set the settings to
-  - ex. if the user does not want untracked files then we would never update the untracked portion of the data
+- fix the untracked files not going into the hashmap
 - reorder the properties so that the text properties are at the bottom
+- get the updated text working properly
+  - the git repos need to be accurately found
+    - ideally the user would be notified if the repo is not valid
+  - updates need to happen after this
 - figure out a way to do popups or something else for the user so they know when errors have happened

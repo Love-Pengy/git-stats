@@ -18,7 +18,7 @@ int MAXNUMPATHS = 25;
 // for debugging general issues
 #define DEBUG_LOG 0
 // for debugging seg faults
-#define DEBUG_PRINT 1
+#define DEBUG_PRINT 0
 struct gitStatsInfo {
     // pointer to the text source
     obs_source_t* textSource;
@@ -132,6 +132,7 @@ char** segmentString(char* string, int* numPaths) {
 
 // this runs when you update settings
 static void git_stats_update(void* data, obs_data_t* settings) {
+    printf("WE CALLED UPDATE\n");
     if (DEBUG_LOG) {
         obs_log(LOG_DEBUG, "STARTING TO UPDATE SOURCE SETTINGS");
     }
@@ -155,7 +156,6 @@ static void git_stats_update(void* data, obs_data_t* settings) {
 
     else {
         int amtHold = 0;
-        printf("WE SHOULD BE GETTING HERE \n");
         info->data->trackedPaths = segmentString(allRepos, &amtHold);
         info->data->numTrackedFiles = amtHold;
     }
@@ -163,16 +163,9 @@ static void git_stats_update(void* data, obs_data_t* settings) {
     info->data->delayAmount = atoi(obs_data_get_string(settings, "delay"));
 
     if (obs_data_get_bool(settings, "untracked_files")) {
-        if (DEBUG_PRINT) {
-            printf("STARTING OF CREATION OF UNTRACKED FILES\n");
-        }
         createUntrackedFilesHM(info->data);
-        if (DEBUG_PRINT) {
-            printf("CREATION OF UNTRACKED FILES FINISHED\n");
-        }
         updateValueHM(&(info->data->untracked));
         info->data->added += getLinesAddedHM(&(info->data->untracked));
-        printf("TEST: FINISHED HANDLING UNTRACKED FILES\n");
     }
     if (DEBUG_LOG) {
         obs_log(LOG_DEBUG, "Git Stats Source Updated");
@@ -192,13 +185,6 @@ static void git_stats_render(void* data, gs_effect_t* effect) {
 
 // updates the data (called each frame with the time elapsed passed in)
 static void git_stats_tick(void* data, float seconds) {
-    if (DEBUG_LOG) {
-        obs_log(LOG_DEBUG, "SOURCE STARTING TO TICK");
-    }
-    else if (DEBUG_PRINT) {
-        printf("SOURCE STARTING TO TICK\n");
-        fflush(stdout);
-    }
     struct gitStatsInfo* info = data;
 
     // don't update if the source isn't active
@@ -213,6 +199,7 @@ static void git_stats_tick(void* data, float seconds) {
     else {
         updateTrackedFiles(info->data);
         updateValueHM(&(info->data->untracked));
+        printHM(info->data->untracked);
         obs_data_set_string(
             info->textSource->context.settings, "text",
             ltoa(info->data->added));

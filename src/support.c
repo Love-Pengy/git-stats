@@ -1,7 +1,7 @@
 #include "support.h"
 
 #include <obs-module.h>
-
+#include <stdlib.h>
 const char* PLUGIN_NAME = "git-stats";
 const char* PLUGIN_VERSION = "0.0.0";
 
@@ -40,4 +40,11 @@ char* ltoa(long input) {
         index++;
     }
     return (output);
+}
+
+char* getHomePath(void) {
+    if (getenv("HOME") == NULL) {
+        return (NULL);
+    }
+    return (getenv("HOME"));
 }

@@ -13,6 +13,7 @@
 // #include "./git-stats-source.h"
 #include "./hashMap/include/hashMap.h"
 #include "./hashMap/lib/include/untrackedFile.h"
+#include "./support.h"
 #include "git-diff-interface.h"
 
 bool checkInsertions(char* input) {
@@ -105,6 +106,19 @@ char* formatEndPathChar(char* formatee) {
     return (output);
 }
 
+void expandHomeDir(char** input) {
+    char expanded[100] = "\0";
+    strcpy(expanded, getHomePath());
+    char* inputHold = malloc(sizeof(char) * (strlen((*input)) + 1));
+    inputHold[0] = '\0';
+    strcpy(inputHold, ((*input) + 1));
+    (*input) = malloc(sizeof(char) * (strlen((*input)) + strlen(expanded) + 1));
+    (*input)[0] = '\0';
+    snprintf(
+        (*input), (strlen(inputHold) + strlen(expanded) + 1), "%s%s", expanded,
+        inputHold);
+}
+
 void checkAllPaths(int numPaths, char** paths) {
     DIR* dptr;
     char* buffer;
@@ -119,6 +133,9 @@ void checkAllPaths(int numPaths, char** paths) {
         }
         strcpy(buffer, paths[i]);
         snprintf(buffer, (strlen(paths[i]) + 7), "%s%s", paths[i], ".git/");
+        if (buffer[0] == '~') {
+            expandHomeDir(&buffer);
+        }
         dptr = opendir(buffer);
         if (errno) {
             printf("%s: Is Not A Git Repository\n", buffer);
@@ -178,7 +195,6 @@ void updateTrackedFiles(struct gitData* data) {
     if (data->untracked != NULL) {
         updateValueHM(&(data->untracked));
         data->added += getLinesAddedHM(&(data->untracked));
-        printf("DO WE GET DOWN HERE?\n");
     }
     data->added += insertions;
     data->deleted += deletions;
