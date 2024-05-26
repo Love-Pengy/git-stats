@@ -155,7 +155,7 @@ void updateTrackedFiles(struct gitData* data) {
 
     long insertions = 0;
     long deletions = 0;
-    for (int i = 1; i < data->numTrackedFiles; i++) {
+    for (int i = 0; i < data->numTrackedFiles; i++) {
         // do this for all items within the structure::
         int commandLength =
             (strlen("/usr/bin/git -C ") + strlen(data->trackedPaths[i]) +
@@ -181,7 +181,6 @@ void updateTrackedFiles(struct gitData* data) {
             if (validOutput) {
                 insertions += getInsertionNumber(output);
                 deletions += getDeletionNumber(output);
-                printf("%ld, %ld\n", insertions, deletions);
             }
             else {
                 // assert(validOutput != true);

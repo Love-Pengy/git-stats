@@ -132,15 +132,6 @@ char** segmentString(char* string, int* numPaths) {
 
 // this runs when you update settings
 static void git_stats_update(void* data, obs_data_t* settings) {
-    printf("WE CALLED UPDATE\n");
-    if (DEBUG_LOG) {
-        obs_log(LOG_DEBUG, "STARTING TO UPDATE SOURCE SETTINGS");
-    }
-    else if (DEBUG_PRINT) {
-        printf("STARTING TO UPDATE SOURCE SETTINGS\n");
-        fflush(stdout);
-    }
-
     struct gitStatsInfo* info = data;
     UNUSED_PARAMETER(data);
 
@@ -160,19 +151,20 @@ static void git_stats_update(void* data, obs_data_t* settings) {
         info->data->numTrackedFiles = amtHold;
     }
 
-    info->data->delayAmount = atoi(obs_data_get_string(settings, "delay"));
+    if (!strcmp("", obs_data_get_string(settings, "delay"))) {
+        info->data->delayAmount = 5;
+    }
+    else {
+        info->data->delayAmount = atoi(obs_data_get_string(settings, "delay"));
+    }
 
+    updateTrackedFiles(info->data);
+    info->data->added = 0;
+    info->data->deleted = 0;
     if (obs_data_get_bool(settings, "untracked_files")) {
         createUntrackedFilesHM(info->data);
         updateValueHM(&(info->data->untracked));
         info->data->added += getLinesAddedHM(&(info->data->untracked));
-    }
-    if (DEBUG_LOG) {
-        obs_log(LOG_DEBUG, "Git Stats Source Updated");
-    }
-    else if (DEBUG_PRINT) {
-        printf("GIT STATS SOURCE UPDATED\n");
-        fflush(stdout);
     }
 }
 
@@ -197,22 +189,16 @@ static void git_stats_tick(void* data, float seconds) {
         obs_data_set_string(info->textSource->context.settings, "text", "");
     }
     else {
+        info->data->deleted = 0;
+        info->data->added = 0;
         updateTrackedFiles(info->data);
         updateValueHM(&(info->data->untracked));
-        printHM(info->data->untracked);
+        // printHM(info->data->untracked);
         obs_data_set_string(
             info->textSource->context.settings, "text",
             ltoa(info->data->added));
     }
     obs_source_update(info->textSource, info->textSource->context.settings);
-
-    if (DEBUG_LOG) {
-        obs_log(LOG_DEBUG, "Git Stats Source Ticked");
-    }
-    else if (DEBUG_PRINT) {
-        printf("GIT STATS SOURCE TICKED\n");
-        fflush(stdout);
-    }
 }
 
 // what autogenerates the UI that I can get user data from (learn about this)

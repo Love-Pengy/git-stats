@@ -92,6 +92,7 @@
   - for tracked you just need to get the info from the git diff output
   - for untracked you need to actually go through and manage those
 
+- figure out why we get garbage for output when we have a valid path (working when path is invalid)
 - fix the untracked files not going into the hashmap
 - reorder the properties so that the text properties are at the bottom
 - get the updated text working properly
