@@ -3,7 +3,7 @@
 typedef struct fileType* untrackedFile;
 void freeUntrackedFile(untrackedFile*);
 struct tm* getModifiedTime(char*);
-int getLinesInFile(char*);
+long getLinesInFile(char*);
 struct tm getTimeEdited(untrackedFile);
 long getLinesAdded(untrackedFile);
 untrackedFile createUntrackedFile(char*);

@@ -8,6 +8,7 @@
 
 #include "./git-diff-interface.h"
 #include "./hashMap/include/hashMap.h"
+#include "hashMap/lib/include/untrackedFile.h"
 #include "support.h"
 int MAXNUMPATHS = 25;
 
@@ -178,7 +179,6 @@ static void git_stats_render(void* data, gs_effect_t* effect) {
 // updates the data (called each frame with the time elapsed passed in)
 static void git_stats_tick(void* data, float seconds) {
     struct gitStatsInfo* info = data;
-
     // don't update if the source isn't active
     if (!obs_source_showing(info->gitSource)) {
         return;
@@ -187,17 +187,21 @@ static void git_stats_tick(void* data, float seconds) {
     info->time_passed += seconds;
     if (info->data->trackedPaths == NULL) {
         obs_data_set_string(info->textSource->context.settings, "text", "");
+        obs_source_update(info->textSource, info->textSource->context.settings);
+        return;
     }
     else {
         info->data->deleted = 0;
         info->data->added = 0;
         updateTrackedFiles(info->data);
+    }
+    if (info->data->untracked != NULL) {
         updateValueHM(&(info->data->untracked));
         // printHM(info->data->untracked);
-        obs_data_set_string(
-            info->textSource->context.settings, "text",
-            ltoa(info->data->added));
     }
+    obs_data_set_string(
+        info->textSource->context.settings, "text", ltoa(info->data->added));
+
     obs_source_update(info->textSource, info->textSource->context.settings);
 }
 

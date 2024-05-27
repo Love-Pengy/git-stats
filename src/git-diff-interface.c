@@ -86,12 +86,14 @@ void createUntrackedFilesHM(struct gitData* data) {
         }
 
         while (fgets(filename, sizeof(filename), fp)) {
+            trailingNewlineDestroyer(filename);
             snprintf(
                 entirePath,
                 (strlen(filename) + strlen(data->trackedPaths[i]) + 1), "%s%s",
                 data->trackedPaths[i], filename);
             addElementHM(
-                &(data->untracked), entirePath, createUntrackedFile(filename));
+                &(data->untracked), entirePath,
+                createUntrackedFile(entirePath));
         }
         pclose(fp);
     }

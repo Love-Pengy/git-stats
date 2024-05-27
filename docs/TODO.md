@@ -87,16 +87,17 @@
 - ~~we interface with both or one of these handlers depending on what the use set the settings to~~
   - ~~ex. if the user does not want untracked files then we would never update the untracked portion of the data~~
 - ~~expand the ~ into an absolute path~~
+- ~~figure out why we get garbage for output when we have a valid path (working when path is invalid)~~
+- ~~fix the untracked files not going into the hashmap~~
+- ~~get the updated text working properly~~
+  - ~~the git repos need to be accurately found~~
+  - ~~updates need to happen after this~~
 
 - create handlers for both untracked and tracked files (THIS IS GOING TO BE IN THE UPDATE FUNCTION)
   - for tracked you just need to get the info from the git diff output
   - for untracked you need to actually go through and manage those
 
-- figure out why we get garbage for output when we have a valid path (working when path is invalid)
-- fix the untracked files not going into the hashmap
+- make the plugin run off rip (shouldn't have to update something before getting output)
 - reorder the properties so that the text properties are at the bottom
-- get the updated text working properly
-  - the git repos need to be accurately found
-    - ideally the user would be notified if the repo is not valid
-  - updates need to happen after this
+- in updateUntrackedFile fix time issue (timing is not correct on the checking if the file has been edited)
 - figure out a way to do popups or something else for the user so they know when errors have happened

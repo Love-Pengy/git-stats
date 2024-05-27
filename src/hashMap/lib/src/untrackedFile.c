@@ -9,6 +9,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
+
+#include "../../../git-diff-interface.h"
 /*
 tm struct{
        int8_t tm_sec
@@ -72,19 +74,24 @@ void freeUntrackedFile(untrackedFile* file) {
     file = NULL;
 }
 
-int getLinesInFile(char* path) {
+long getLinesInFile(char* path) {
     if (path == NULL) {
         return (0);
     }
     FILE* fptr;
     errno = 0;
-    fptr = fopen(path, "r");
-    if (fptr == NULL) {
+    char* pathCpy = malloc(sizeof(char) * 1000);
+    pathCpy[0] = '\0';
+    strcpy(pathCpy, path);
+    expandHomeDir(&pathCpy);
+    fptr = fopen(pathCpy, "r");
+    if (errno) {
+        printf("%s: %s\n", pathCpy, strerror(errno));
         return (0);
     }
 
     char buffer[MAX_LINE_LENGTH];
-    int lineCount = 0;
+    long lineCount = 0;
 
     while (fgets(buffer, MAX_LINE_LENGTH, fptr)) {
         lineCount += 1;

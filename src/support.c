@@ -34,11 +34,13 @@ char* ltoa(long input) {
         output[1] = '\0';
     }
     while (!((input / currProduct) < 1)) {
-        output[index] = ((input / currProduct) % 10);
+        // add 48 because of ascii table
+        output[index] = (char)(((input / currProduct) % 10) + 48);
         output[index + 1] = '\0';
         currProduct *= 10;
         index++;
     }
+    printf("%s\n", output);
     return (output);
 }
 
