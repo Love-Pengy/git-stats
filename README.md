@@ -7,7 +7,8 @@ This plugin aims to keep the main features of the git-linestats-widget while aut
 **NOTE:** This plugin is make for linux and linux only at the moment. This may change later but for now it is linux only.
 
 Features:
-    - ability to specify tracked and untracked files
-    - text modifyability (font and colors)
-    - antialiasing
-    - And More To Come
+
+- ability to specify tracked and untracked files
+- text modifyability (font and colors)
+- antialiasing
+- And More To Come
