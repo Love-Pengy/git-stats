@@ -150,30 +150,31 @@ void expandHomeDir(char** input) {
         inputHold);
 }
 
-void checkAllPaths(int numPaths, char** paths) {
+// check if path is a git dir
+bool checkPath(char* path) {
     DIR* dptr;
     char* buffer;
-    for (int i = 0; i < numPaths; i++) {
-        // check if the directory exists
-        errno = 0;
-        buffer = malloc(sizeof(char) * (strlen(paths[i]) + 5));
-        buffer[0] = '\0';
 
-        if (paths[i][strlen(paths[i]) - 1] != '/') {
-            paths[i] = formatEndPathChar(paths[i]);
-        }
-        strcpy(buffer, paths[i]);
-        snprintf(buffer, (strlen(paths[i]) + 7), "%s%s", paths[i], ".git/");
-        if (buffer[0] == '~') {
-            expandHomeDir(&buffer);
-        }
-        dptr = opendir(buffer);
-        if (errno) {
-            printf("%s: Is Not A Git Repository\n", buffer);
-            // exit(EXIT_FAILURE);
-        }
-        closedir(dptr);
+    // check if the directory exists
+    errno = 0;
+    buffer = malloc(sizeof(char) * (strlen(path) + 5));
+    buffer[0] = '\0';
+
+    if (path[strlen(path) - 1] != '/') {
+        path = formatEndPathChar(path);
     }
+    strcpy(buffer, path);
+    snprintf(buffer, (strlen(path) + 7), "%s%s", path, ".git/");
+    if (buffer[0] == '~') {
+        expandHomeDir(&buffer);
+    }
+    dptr = opendir(buffer);
+    if (errno) {
+        closedir(dptr);
+        return (false);
+    }
+    closedir(dptr);
+    return (true);
 }
 
 void updateTrackedFiles(struct gitData* data) {
@@ -182,11 +183,12 @@ void updateTrackedFiles(struct gitData* data) {
 
     fflush(stdout);
 
-    checkAllPaths(data->numTrackedFiles, data->trackedPaths);
-
     long insertions = 0;
     long deletions = 0;
     for (int i = 0; i < data->numTrackedFiles; i++) {
+        if (!checkPath(data->trackedPaths[i])) {
+            continue;
+        }
         // do this for all items within the structure::
         int commandLength =
             (strlen("/usr/bin/git -C ") + strlen(data->trackedPaths[i]) +
