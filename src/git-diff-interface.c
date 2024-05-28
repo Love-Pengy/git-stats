@@ -17,13 +17,42 @@
 #include "git-diff-interface.h"
 
 bool checkInsertions(char* input) {
+    if (input == NULL) {
+        return (false);
+    }
     char* tmpString = malloc(sizeof(char) * strlen(input) + 1);
-    tmpString[0] = '\0';
     strncpy(tmpString, input, strlen(input) + 1);
     char* checker = strtok(tmpString, "insertions");
     if (checker == NULL) {
-        free(tmpString);
+        tmpString = malloc(sizeof(char) * strlen(input) + 1);
+        tmpString[0] = '\0';
+        strncpy(tmpString, input, strlen(input) + 1);
+        checker = strtok(tmpString, "insertion");
+        if (checker == NULL) {
+            free(tmpString);
+            return (false);
+        }
+    }
+    free(tmpString);
+    return (true);
+}
+bool checkDeletions(char* input) {
+    if (input == NULL) {
         return (false);
+    }
+    char* tmpString = malloc(sizeof(char) * strlen(input) + 1);
+    tmpString[0] = '\0';
+    strncpy(tmpString, input, strlen(input) + 1);
+    char* checker = strtok(tmpString, "deletions");
+    if (checker == NULL) {
+        tmpString = malloc(sizeof(char) * strlen(input) + 1);
+        tmpString[0] = '\0';
+        strncpy(tmpString, input, strlen(input) + 1);
+        strtok(tmpString, "deletion");
+        if (checker == NULL) {
+            free(tmpString);
+            return (false);
+        }
     }
     free(tmpString);
     return (true);
@@ -177,18 +206,14 @@ void updateTrackedFiles(struct gitData* data) {
         }
         // assert(fp != NULL);
 
-        bool validOutput;
-        while (fgets(output, sizeof(output), fp)) {
-            validOutput = checkInsertions(output);
-            if (validOutput) {
+        if (fgets(output, sizeof(output), fp)) {
+            bool insertionExists = checkInsertions(output);
+            bool deletionExists = checkDeletions(output);
+            if (insertionExists) {
                 insertions += getInsertionNumber(output);
-                deletions += getDeletionNumber(output);
             }
-            else {
-                // assert(validOutput != true);
-                pclose(fp);
-                continue;
-                // exit(EXIT_FAILURE);
+            if (deletionExists) {
+                deletions += getDeletionNumber(output);
             }
         }
         pclose(fp);

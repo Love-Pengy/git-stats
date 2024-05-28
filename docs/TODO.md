@@ -92,7 +92,7 @@
 - ~~get the updated text working properly~~
   - ~~the git repos need to be accurately found~~
   - ~~updates need to happen after this~~
-
+- ~~fixed the order of the numbers outputted from ltoa~~
 - create handlers for both untracked and tracked files (THIS IS GOING TO BE IN THE UPDATE FUNCTION)
   - for tracked you just need to get the info from the git diff output
   - for untracked you need to actually go through and manage those
@@ -101,3 +101,4 @@
 - reorder the properties so that the text properties are at the bottom
 - in updateUntrackedFile fix time issue (timing is not correct on the checking if the file has been edited)
 - figure out a way to do popups or something else for the user so they know when errors have happened
+something here

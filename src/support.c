@@ -26,7 +26,7 @@ char* ltoa(long input) {
     //  check if it's the end by first getting the lenght by seeing if it
     //  divides by a multiple without being a fraction
     long currProduct = 1;
-    int index = 0;
+    int size = 0;
     char* output = malloc(sizeof(char) * 22);
     output[0] = '\0';
     if (input == 0) {
@@ -34,12 +34,17 @@ char* ltoa(long input) {
         output[1] = '\0';
     }
     while (!((input / currProduct) < 1)) {
-        // add 48 because of ascii table
-        output[index] = (char)(((input / currProduct) % 10) + 48);
-        output[index + 1] = '\0';
+        size++;
         currProduct *= 10;
-        index++;
     }
+    currProduct = 1;
+    for (int i = 0; i < size; i++) {
+        // 0th index is highest one
+        // add 48 because of ascii table
+        output[i] = (char)(((input / (10 ^ ((size - 1) - i)) % 10) + 48));
+        currProduct *= 10;
+    }
+    output[size] = '\0';
     printf("%s\n", output);
     return (output);
 }

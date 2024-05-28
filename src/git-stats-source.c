@@ -159,9 +159,9 @@ static void git_stats_update(void* data, obs_data_t* settings) {
         info->data->delayAmount = atoi(obs_data_get_string(settings, "delay"));
     }
 
-    updateTrackedFiles(info->data);
     info->data->added = 0;
     info->data->deleted = 0;
+    updateTrackedFiles(info->data);
     if (obs_data_get_bool(settings, "untracked_files")) {
         createUntrackedFilesHM(info->data);
         updateValueHM(&(info->data->untracked));
