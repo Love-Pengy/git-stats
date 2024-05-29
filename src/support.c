@@ -22,18 +22,23 @@ void obs_log(int log_level, const char* format, ...) {
 }
 
 char* ltoa(long input) {
+    printf("INPUT: %ld\n", input);
     // get a given value by dividing by a multiple of 10
     //  check if it's the end by first getting the lenght by seeing if it
     //  divides by a multiple without being a fraction
     long currProduct = 1;
     int size = 0;
     char* output = malloc(sizeof(char) * 22);
+    bool entered = false;
     output[0] = '\0';
     if (input == 0) {
         output[0] = '0';
         output[1] = '\0';
     }
     while (!((input / currProduct) < 1)) {
+        if (currProduct != 1) {
+            entered = true;
+        }
         size++;
         currProduct *= 10;
     }
@@ -41,11 +46,16 @@ char* ltoa(long input) {
     for (int i = 0; i < size; i++) {
         // 0th index is highest one
         // add 48 because of ascii table
-        output[i] = (char)(((input / (10 ^ ((size - 1) - i)) % 10) + 48));
+        output[i] =
+            (char)((((int)(input / powl(10, ((size - 1) - i))) % 10) + 48));
         currProduct *= 10;
     }
     output[size] = '\0';
-    printf("%s\n", output);
+    if (!entered) {
+        output[0] = (char)(input + 48);
+        output[1] = '\0';
+    }
+    // printf("OUTPUT: %s\n", output);
     return (output);
 }
 
