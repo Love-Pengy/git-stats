@@ -22,7 +22,6 @@ void obs_log(int log_level, const char* format, ...) {
 }
 
 char* ltoa(long input) {
-    printf("INPUT: %ld\n", input);
     // get a given value by dividing by a multiple of 10
     //  check if it's the end by first getting the lenght by seeing if it
     //  divides by a multiple without being a fraction

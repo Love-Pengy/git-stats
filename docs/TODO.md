@@ -94,11 +94,15 @@
   - ~~updates need to happen after this~~
 - ~~fixed the order of the numbers outputted from ltoa~~
 - ~~make it so that the command checker does not run if the file is not valid~~
+- ~~add only ticking when timer is done~~
 
 - create handlers for both untracked and tracked files (THIS IS GOING TO BE IN THE UPDATE FUNCTION)
   - for tracked you just need to get the info from the git diff output
   - for untracked you need to actually go through and manage those
 
+- get the text source updating to work without tick
+- fix the typing issue
+  - crashes when typing out the repo path
 - make the plugin run off rip (shouldn't have to update something before getting output)
 - reorder the properties so that the text properties are at the bottom
 - in updateUntrackedFile fix time issue (timing is not correct on the checking if the file has been edited)

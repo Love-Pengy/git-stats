@@ -16,10 +16,7 @@ int MAXNUMPATHS = 25;
 // LOG_WARNING: when error occurs and is recoverable
 // LOG_INFO: info for whats going on
 // LOG_DEBUG: use for debug //// only sent when debug is true
-// for debugging general issues
-#define DEBUG_LOG 0
-// for debugging seg faults
-#define DEBUG_PRINT 0
+
 struct gitStatsInfo {
     // pointer to the text source
     obs_source_t* textSource;
@@ -152,7 +149,8 @@ static void git_stats_update(void* data, obs_data_t* settings) {
         info->data->numTrackedFiles = amtHold;
     }
 
-    if (!strcmp("", obs_data_get_string(settings, "delay"))) {
+    if (!strcmp("", obs_data_get_string(settings, "delay")) ||
+        (obs_data_get_string(settings, "delay") == NULL)) {
         info->data->delayAmount = 5;
     }
     else {
@@ -185,30 +183,35 @@ static void git_stats_tick(void* data, float seconds) {
     }
 
     info->time_passed += seconds;
-    if (info->data->trackedPaths == NULL) {
-        obs_data_set_string(info->textSource->context.settings, "text", "");
-        obs_source_update(info->textSource, info->textSource->context.settings);
-        return;
-    }
-    else {
-        info->data->deleted = 0;
-        info->data->added = 0;
-        updateTrackedFiles(info->data);
-    }
-    if (info->data->untracked != NULL) {
-        updateValueHM(&(info->data->untracked));
-        // printHM(info->data->untracked);
-    }
-    char outputBuffer[100] = "\0";
-    // printf("TEST: %ld, %ld\n", info->data->added, info->data->deleted);
-    snprintf(
-        outputBuffer,
-        strlen(ltoa(info->data->added)) + strlen(ltoa(info->data->deleted)) + 4,
-        "+%s -%s", ltoa(info->data->added), ltoa(info->data->deleted));
-    obs_data_set_string(
-        info->textSource->context.settings, "text", outputBuffer);
+    if (info->time_passed > info->data->delayAmount) {
+        info->time_passed = 0;
+        if (info->data->trackedPaths == NULL) {
+            obs_data_set_string(info->textSource->context.settings, "text", "");
+            obs_source_update(
+                info->textSource, info->textSource->context.settings);
+            return;
+        }
+        else {
+            info->data->deleted = 0;
+            info->data->added = 0;
+            updateTrackedFiles(info->data);
+        }
+        if (info->data->untracked != NULL) {
+            updateValueHM(&(info->data->untracked));
+            // printHM(info->data->untracked);
+        }
+        char outputBuffer[100] = "\0";
+        // printf("TEST: %ld, %ld\n", info->data->added, info->data->deleted);
+        snprintf(
+            outputBuffer,
+            strlen(ltoa(info->data->added)) +
+                strlen(ltoa(info->data->deleted)) + 4,
+            "+%s -%s", ltoa(info->data->added), ltoa(info->data->deleted));
+        obs_data_set_string(
+            info->textSource->context.settings, "text", outputBuffer);
 
-    obs_source_update(info->textSource, info->textSource->context.settings);
+        obs_source_update(info->textSource, info->textSource->context.settings);
+    }
 }
 
 // what autogenerates the UI that I can get user data from (learn about this)
