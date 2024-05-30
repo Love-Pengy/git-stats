@@ -54,7 +54,6 @@ char* ltoa(long input) {
         output[0] = (char)(input + 48);
         output[1] = '\0';
     }
-    // printf("OUTPUT: %s\n", output);
     return (output);
 }
 

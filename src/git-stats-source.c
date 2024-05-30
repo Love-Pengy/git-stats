@@ -141,6 +141,7 @@ static void git_stats_update(void* data, obs_data_t* settings) {
 
     if (allRepos == NULL) {
         obs_data_set_string(info->textSource->context.settings, "text", "");
+        // something random
     }
 
     else {
@@ -201,7 +202,6 @@ static void git_stats_tick(void* data, float seconds) {
             // printHM(info->data->untracked);
         }
         char outputBuffer[100] = "\0";
-        // printf("TEST: %ld, %ld\n", info->data->added, info->data->deleted);
         snprintf(
             outputBuffer,
             strlen(ltoa(info->data->added)) +
@@ -209,7 +209,6 @@ static void git_stats_tick(void* data, float seconds) {
             "+%s -%s", ltoa(info->data->added), ltoa(info->data->deleted));
         obs_data_set_string(
             info->textSource->context.settings, "text", outputBuffer);
-
         obs_source_update(info->textSource, info->textSource->context.settings);
     }
 }

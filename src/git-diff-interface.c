@@ -48,7 +48,7 @@ bool checkDeletions(char* input) {
         tmpString = malloc(sizeof(char) * strlen(input) + 1);
         tmpString[0] = '\0';
         strncpy(tmpString, input, strlen(input) + 1);
-        strtok(tmpString, "deletion");
+        checker = strtok(tmpString, "deletion");
         if (checker == NULL) {
             free(tmpString);
             return (false);
@@ -79,6 +79,7 @@ long getInsertionNumber(char* diffString) {
 }
 
 long getDeletionNumber(char* diffString) {
+    printf("got here\n");
     long output = 0;
     char* diffStringCopy = malloc(sizeof(char) * (strlen(diffString) + 1));
     diffStringCopy[0] = '\0';
