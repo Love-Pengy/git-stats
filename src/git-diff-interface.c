@@ -65,33 +65,62 @@ void trailingNewlineDestroyer(char* victim) {
 }
 
 long getInsertionNumber(char* diffString) {
-    long output = 0;
+    if (diffString == NULL) {
+        return (0);
+    }
     char* diffStringCopy = malloc(sizeof(char) * (strlen(diffString) + 1));
     diffStringCopy[0] = '\0';
-    char* buffer;
     strcpy(diffStringCopy, diffString);
-    buffer = strtok(diffStringCopy, ",");
-    buffer = strtok(NULL, ",");
-
-    output = atol(buffer);
-
-    return (output);
+    char* buff2;
+    char* startDelim = strstr(diffStringCopy, "insertions");
+    if (!startDelim) {
+        startDelim = strstr(diffStringCopy, "insertion");
+    }
+    if (!startDelim) {
+        return (0);
+    }
+    char buffer[strlen(startDelim)];
+    for (int i = 0; i < (int)(strlen(diffString) - strlen(startDelim)); i++) {
+        buffer[i] = diffString[i];
+    }
+    char* amt;
+    buff2 = strtok(buffer, ",");
+    amt = buff2;
+    while ((buff2 = strtok(NULL, ","))) {
+        amt = buff2;
+    }
+    free(diffStringCopy);
+    return (atol(amt));
 }
 
 long getDeletionNumber(char* diffString) {
-    printf("got here\n");
-    long output = 0;
+    if (diffString == NULL) {
+        return (0);
+    }
+
     char* diffStringCopy = malloc(sizeof(char) * (strlen(diffString) + 1));
     diffStringCopy[0] = '\0';
-    char* buffer;
     strcpy(diffStringCopy, diffString);
-    buffer = strtok(diffStringCopy, ",");
-    buffer = strtok(NULL, ",");
-    buffer = strtok(NULL, ",");
-
-    output = atol(buffer);
-
-    return (output);
+    char* buff2;
+    char* startDelim = strstr(diffStringCopy, "deletions");
+    if (!startDelim) {
+        startDelim = strstr(diffStringCopy, "deletion");
+    }
+    if (!startDelim) {
+        return (0);
+    }
+    char buffer[strlen(startDelim)];
+    for (int i = 0; i < (int)(strlen(diffString) - strlen(startDelim)); i++) {
+        buffer[i] = diffString[i];
+    }
+    char* amt;
+    buff2 = strtok(buffer, ",");
+    amt = buff2;
+    while ((buff2 = strtok(NULL, ","))) {
+        amt = buff2;
+    }
+    free(diffStringCopy);
+    return (atol(amt));
 }
 
 void createUntrackedFilesHM(struct gitData* data) {
@@ -127,8 +156,6 @@ void createUntrackedFilesHM(struct gitData* data) {
         }
         pclose(fp);
     }
-
-    fflush(stdout);
 }
 
 char* formatEndPathChar(char* formatee) {
@@ -178,11 +205,14 @@ bool checkPath(char* path) {
     return (true);
 }
 
+// at the current point the pointer in the parameter is changing its address
+// before getting to the for loop
 void updateTrackedFiles(struct gitData* data) {
+    if (data == NULL) {
+        return;
+    }
     FILE* fp;
     char output[1000];
-
-    fflush(stdout);
 
     long insertions = 0;
     long deletions = 0;

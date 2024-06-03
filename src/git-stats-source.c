@@ -51,7 +51,7 @@ static void* git_stats_create(obs_data_t* settings, obs_source_t* source) {
     info->data = bzalloc(sizeof(struct gitData));
     info->data->trackedPaths = NULL;
     info->data->numTrackedFiles = 0;
-    info->data->untracked = createHashMap();
+    info->data->untracked = NULL;
     info->data->added = 0;
     info->data->deleted = 0;
 
@@ -139,9 +139,8 @@ static void git_stats_update(void* data, obs_data_t* settings) {
 
     strcpy(allRepos, obs_data_get_string(settings, "repos"));
 
-    if (allRepos == NULL) {
+    if (allRepos == NULL || !strcmp(allRepos, "")) {
         obs_data_set_string(info->textSource->context.settings, "text", "");
-        // something random
     }
 
     else {
@@ -160,11 +159,12 @@ static void git_stats_update(void* data, obs_data_t* settings) {
 
     info->data->added = 0;
     info->data->deleted = 0;
-    updateTrackedFiles(info->data);
+
     if (obs_data_get_bool(settings, "untracked_files")) {
+        if (info->data->untracked == NULL) {
+            info->data->untracked = createHashMap();
+        }
         createUntrackedFilesHM(info->data);
-        updateValueHM(&(info->data->untracked));
-        info->data->added += getLinesAddedHM(&(info->data->untracked));
     }
 }
 
@@ -178,7 +178,7 @@ static void git_stats_render(void* data, gs_effect_t* effect) {
 // updates the data (called each frame with the time elapsed passed in)
 static void git_stats_tick(void* data, float seconds) {
     struct gitStatsInfo* info = data;
-    // don't update if the source isn't active
+
     if (!obs_source_showing(info->gitSource)) {
         return;
     }
@@ -199,7 +199,7 @@ static void git_stats_tick(void* data, float seconds) {
         }
         if (info->data->untracked != NULL) {
             updateValueHM(&(info->data->untracked));
-            // printHM(info->data->untracked);
+            info->data->added += getLinesAddedHM(&(info->data->untracked));
         }
         char outputBuffer[100] = "\0";
         snprintf(
