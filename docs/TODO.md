@@ -107,3 +107,16 @@
 - reorder the properties so that the text properties are at the bottom
 - in updateUntrackedFile fix time issue (timing is not correct on the checking if the file has been edited)
 - figure out a way to do popups or something else for the user so they know when errors have happened
+
+## NOTES
+
+- currently running obs normally seg faults but running with the -O0 and the following valgring command:
+
+```
+valgrind --leak-check=full \
+         --show-leak-kinds=all \
+         --track-origins=yes \
+         --verbose \
+         --log-file=valgrind-out.txt \
+         ./executable exampleParam1
+``` the program runs perfectly

@@ -20,8 +20,16 @@ bool checkInsertions(char* input) {
     if (input == NULL) {
         return (false);
     }
+    errno = 0;
     char* tmpString = malloc(sizeof(char) * strlen(input) + 1);
+    if (errno) {
+        perror("git-diff-interface(checkInsertions)");
+    }
     strncpy(tmpString, input, strlen(input) + 1);
+    if (tmpString == NULL) {
+        printf("TMPSTRING WAS NULL IN CHECKINSERTIONS\n");
+        return (false);
+    }
     char* checker = strtok(tmpString, "insertions");
     if (checker == NULL) {
         tmpString = malloc(sizeof(char) * strlen(input) + 1);
@@ -40,9 +48,17 @@ bool checkDeletions(char* input) {
     if (input == NULL) {
         return (false);
     }
+    errno = 0;
     char* tmpString = malloc(sizeof(char) * strlen(input) + 1);
+    if (errno) {
+        perror("git-diff-interface(checkDeletions)");
+    }
     tmpString[0] = '\0';
     strncpy(tmpString, input, strlen(input) + 1);
+    if (tmpString == NULL) {
+        printf("TMPSTRING NULL IN CHECKDELETIONS\n");
+        return (false);
+    }
     char* checker = strtok(tmpString, "deletions");
     if (checker == NULL) {
         tmpString = malloc(sizeof(char) * strlen(input) + 1);
@@ -68,10 +84,18 @@ long getInsertionNumber(char* diffString) {
     if (diffString == NULL) {
         return (0);
     }
+    errno = 0;
     char* diffStringCopy = malloc(sizeof(char) * (strlen(diffString) + 1));
+    if (errno) {
+        perror("git-diff-interface(getInsertionNumber)");
+    }
     diffStringCopy[0] = '\0';
     strcpy(diffStringCopy, diffString);
-    char* buff2;
+    if (diffStringCopy == NULL) {
+        printf("DIFFSTRINGCOPY IS NULL IN GETINSERTIONNUMBER\n");
+        return (0);
+    }
+    char* buff2 = NULL;
     char* startDelim = strstr(diffStringCopy, "insertions");
     if (!startDelim) {
         startDelim = strstr(diffStringCopy, "insertion");
@@ -83,7 +107,7 @@ long getInsertionNumber(char* diffString) {
     for (int i = 0; i < (int)(strlen(diffString) - strlen(startDelim)); i++) {
         buffer[i] = diffString[i];
     }
-    char* amt;
+    char* amt = NULL;
     buff2 = strtok(buffer, ",");
     amt = buff2;
     while ((buff2 = strtok(NULL, ","))) {
@@ -97,10 +121,17 @@ long getDeletionNumber(char* diffString) {
     if (diffString == NULL) {
         return (0);
     }
-
+    errno = 0;
     char* diffStringCopy = malloc(sizeof(char) * (strlen(diffString) + 1));
+    if (errno) {
+        perror("git-diff-interface(getDeletionNumber)");
+    }
     diffStringCopy[0] = '\0';
     strcpy(diffStringCopy, diffString);
+    if (diffStringCopy == NULL) {
+        printf("DIFFSTRINGCOPY IS NULL IN GETDELETIONNUMBER\n");
+        return (0);
+    }
     char* buff2;
     char* startDelim = strstr(diffStringCopy, "deletions");
     if (!startDelim) {
@@ -132,7 +163,12 @@ void createUntrackedFilesHM(struct gitData* data) {
         int commandLength =
             (strlen("/usr/bin/git -C ") + strlen(data->trackedPaths[i]) +
              strlen(" ls-files --others --exclude-standard") + 1);
+        errno = 0;
         char* command = malloc(sizeof(char) * commandLength);
+        if (errno) {
+            printf("MALLOC FAILED IN CREATEUNTRACKED\n");
+            continue;
+        }
         command[0] = '\0';
 
         snprintf(
@@ -159,7 +195,12 @@ void createUntrackedFilesHM(struct gitData* data) {
 }
 
 char* formatEndPathChar(char* formatee) {
-    char* output = malloc(sizeof(char) * strlen(formatee) + 1);
+    errno = 0;
+    char* output = malloc(sizeof(char) * strlen(formatee) + 3);
+    if (errno) {
+        perror("git-diff-interface(formatEndPathChar)");
+        return (formatee);
+    }
     output[0] = '\0';
     snprintf(output, (strlen(formatee) + 2), "%s%c", formatee, '/');
     return (output);
@@ -168,10 +209,20 @@ char* formatEndPathChar(char* formatee) {
 void expandHomeDir(char** input) {
     char expanded[100] = "\0";
     strcpy(expanded, getHomePath());
+    errno = 0;
     char* inputHold = malloc(sizeof(char) * (strlen((*input)) + 1));
+    if (errno) {
+        perror("git-diff-interface(expandHomeDir)");
+        return;
+    }
     inputHold[0] = '\0';
     strcpy(inputHold, ((*input) + 1));
+    errno = 0;
     (*input) = malloc(sizeof(char) * (strlen((*input)) + strlen(expanded) + 1));
+    if (errno || (*input) == NULL) {
+        printf("FAILED EXPANDHOMEDIR\n");
+        return;
+    }
     (*input)[0] = '\0';
     snprintf(
         (*input), (strlen(inputHold) + strlen(expanded) + 1), "%s%s", expanded,
@@ -185,7 +236,11 @@ bool checkPath(char* path) {
 
     // check if the directory exists
     errno = 0;
-    buffer = malloc(sizeof(char) * (strlen(path) + 5));
+    buffer = malloc(sizeof(char) * (strlen(path) + 8));
+    if (errno) {
+        perror("git-diff-interface(checkPath)");
+        return (false);
+    }
     buffer[0] = '\0';
 
     if (path[strlen(path) - 1] != '/') {
@@ -209,6 +264,7 @@ bool checkPath(char* path) {
 // before getting to the for loop
 void updateTrackedFiles(struct gitData* data) {
     if (data == NULL) {
+        printf("Data Struct Is NULL\n");
         return;
     }
     FILE* fp;
@@ -220,12 +276,16 @@ void updateTrackedFiles(struct gitData* data) {
         if (!checkPath(data->trackedPaths[i])) {
             continue;
         }
-        // do this for all items within the structure::
         int commandLength =
             (strlen("/usr/bin/git -C ") + strlen(data->trackedPaths[i]) +
              strlen(" diff --no-pager --shortstat") + 1);
 
+        errno = 0;
         char* command = malloc(sizeof(char) * commandLength);
+        if (errno) {
+            perror("git-diff-interface(updateTrackedFiles)");
+            continue;
+        }
         command[0] = '\0';
 
         snprintf(
