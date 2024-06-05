@@ -322,10 +322,6 @@ void updateTrackedFiles(struct gitData* data) {
         }
         pclose(fp);
     }
-    if (data->untracked != NULL) {
-        updateValueHM(&(data->untracked));
-        data->added += getLinesAddedHM(&(data->untracked));
-    }
     data->added += insertions;
     data->deleted += deletions;
 }

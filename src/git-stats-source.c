@@ -203,6 +203,7 @@ static void git_stats_tick(void* data, float seconds) {
         if (info->data->untracked != NULL) {
             updateValueHM(&(info->data->untracked));
             info->data->added += getLinesAddedHM(&(info->data->untracked));
+            printf("TEST: %ld \n", getLinesAddedHM(&(info->data->untracked)));
         }
         char outputBuffer[100] = "\0";
         snprintf(
