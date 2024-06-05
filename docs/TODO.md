@@ -95,18 +95,28 @@
 - ~~fixed the order of the numbers outputted from ltoa~~
 - ~~make it so that the command checker does not run if the file is not valid~~
 - ~~add only ticking when timer is done~~
+- ~~fix the typing issue~~
+  - ~~crashes when typing out the repo path~~
+- ~~change delay to an integer~~
 
 - create handlers for both untracked and tracked files (THIS IS GOING TO BE IN THE UPDATE FUNCTION)
-  - for tracked you just need to get the info from the git diff output
+  - ~~for tracked you just need to get the info from the git diff output~~
   - for untracked you need to actually go through and manage those
 
-- get the text source updating to work without tick
-- fix the typing issue
-  - crashes when typing out the repo path
-- make the plugin run off rip (shouldn't have to update something before getting output)
-- reorder the properties so that the text properties are at the bottom
 - in updateUntrackedFile fix time issue (timing is not correct on the checking if the file has been edited)
+
+- make the plugin run off rip (shouldn't have to update something before getting output)
+- make a clear hashmap function and use it at update so that untracked files can be live updated as well
+- allow updating of the source in the update function just don't update the contents of it in relation to the plugin
+- reorder the properties so that the text properties are at the bottom
 - figure out a way to do popups or something else for the user so they know when errors have happened
+- figure out how to
+- allow directories to be specified that hold multiple repos
+  - make this a seperate field
+- for the directory specification use this:
+  - <https://docs.obsproject.com/reference-properties?highlight=properties#c.obs_properties_add_path>
+- change the single repo list to this:  
+  - <https://docs.obsproject.com/reference-properties?highlight=properties#c.obs_properties_add_editable_list>
 
 ## NOTES
 

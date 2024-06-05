@@ -98,7 +98,7 @@ static uint32_t git_stats_height(void* data) {
 // set the settings defaults for the source
 static void git_stats_get_defaults(obs_data_t* settings) {
     obs_data_set_default_bool(settings, "untracked_files", false);
-    obs_data_set_default_string(settings, "delay", "5");
+    obs_data_set_default_int(settings, "delay", 5);
 }
 
 // takes string and delimits it by newline chars
@@ -148,14 +148,17 @@ static void git_stats_update(void* data, obs_data_t* settings) {
         info->data->trackedPaths = segmentString(allRepos, &amtHold);
         info->data->numTrackedFiles = amtHold;
     }
-
-    if (!strcmp("", obs_data_get_string(settings, "delay")) ||
-        (obs_data_get_string(settings, "delay") == NULL)) {
-        info->data->delayAmount = 5;
-    }
-    else {
-        info->data->delayAmount = atoi(obs_data_get_string(settings, "delay"));
-    }
+    /*
+        if (obs_data_get_int(settings, "delay") == NULL) {
+            info->data->delayAmount = 5;
+        }
+        else {
+            info->data->delayAmount = obs_data_get_int(settings, "delay");
+        }
+        */
+    // do not have to do anything because it handles edge cases for me (based on
+    // max and min) and doesn't allow empty input
+    info->data->delayAmount = obs_data_get_int(settings, "delay");
 
     info->data->added = 0;
     info->data->deleted = 0;
@@ -230,8 +233,8 @@ static obs_properties_t* git_stats_properties(void* unused) {
     obs_properties_add_text(
         props, "repos", "Repositiories", OBS_TEXT_MULTILINE);
 
-    obs_properties_add_text(
-        props, "delay", "Delay Between Updates", OBS_TEXT_DEFAULT);
+    obs_properties_add_int(
+        props, "delay", "Delay Between Updates", 0, INT_MAX, 1);
 
     obs_properties_add_bool(
         props, "untracked_files", "Account For Untracked Files");
