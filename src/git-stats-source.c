@@ -162,6 +162,11 @@ static void git_stats_update(void* data, obs_data_t* settings) {
         info->data->untracked = createHashMap();
         createUntrackedFilesHM(info->data);
     }
+
+    if (!obs_data_get_bool(settings, "untracked_files") &&
+        (info->data->untracked != NULL)) {
+        info->data->untracked = createHashMap();
+    }
 }
 
 // render out the source
@@ -209,7 +214,8 @@ static void git_stats_tick(void* data, float seconds) {
     }
 }
 
-// what autogenerates the UI that I can get user data from (learn about this)
+// what autogenerates the UI that I can get user data from (learn about
+// this)
 static obs_properties_t* git_stats_properties(void* unused) {
     struct gitStatsInfo* info = unused;
     UNUSED_PARAMETER(unused);

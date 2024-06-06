@@ -106,15 +106,15 @@
   - ~~do this by checking if a repo path is a substring in the entire path of the untraccked file~~
     - this was ignored because it its more expensive to check all keys for the substring than it is to just redo the hashmap
 - ~~make the plugin run off rip (shouldn't have to update something before getting output)~~
-- make a clear hashmap function and use it at update so that untracked files can be live updated as well
+- ~~make a clear hashmap function and use it at update so that untracked files can be live updated as well~~
   - basically implemented when hashmap was recreated
+- ~~allow updating of the source in the update function just don't update the contents of it in relation to the plugin~~
+- ~~make untracked files not accounted for when unticking untracked files bool from a ticked state~~
 
 - see if its possible to use restrict keyword to fix pointer issue for -O0 compilation
-- allow updating of the source in the update function just don't update the contents of it in relation to the plugin
 - reorder the properties so that the text properties are at the bottom
 - figure out a way to do popups or something else for the user so they know when errors have happened
-- figure out how to
-- allow directories to be specified that hold multiple repos
+- figure out how to allow directories to be specified that hold multiple repos
   - make this a seperate field
 - for the directory specification use this:
   - <https://docs.obsproject.com/reference-properties?highlight=properties#c.obs_properties_add_path>
