@@ -98,13 +98,14 @@
 - ~~fix the typing issue~~
   - ~~crashes when typing out the repo path~~
 - ~~change delay to an integer~~
-
-- create handlers for both untracked and tracked files (THIS IS GOING TO BE IN THE UPDATE FUNCTION)
+- ~~create handlers for both untracked and tracked files (THIS IS GOING TO BE IN THE UPDATE FUNCTION)~~
   - ~~for tracked you just need to get the info from the git diff output~~
-  - for untracked you need to actually go through and manage those
+  - ~~for untracked you need to actually go through and manage those~~
+- ~~in updateUntrackedFile fix time issue (timing is not correct on the checking if the file has been edited)~~
 
-- in updateUntrackedFile fix time issue (timing is not correct on the checking if the file has been edited)
-
+- see if its possible to use restrict keyword to fix pointer issue for -O0 compilation
+- make a function that goes through the untracked files and deleted ones that should not be there anymore
+  - do this by checking if a repo path is a substring in the entire path of the untraccked file
 - make the plugin run off rip (shouldn't have to update something before getting output)
 - make a clear hashmap function and use it at update so that untracked files can be live updated as well
 - allow updating of the source in the update function just don't update the contents of it in relation to the plugin

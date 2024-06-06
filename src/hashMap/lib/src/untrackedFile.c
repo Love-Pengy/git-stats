@@ -63,7 +63,16 @@ void copyUntrackedFile(untrackedFile* dest, untrackedFile* src) {
 
 struct tm* getModifiedTime(char* path) {
     struct stat attr;
-    stat(path, &attr);
+    char* copy = malloc(sizeof(char) * (strlen(path) + 1));
+    copy[0] = '\0';
+    strcpy(copy, path);
+    errno = 0;
+    expandHomeDir(&copy);
+    stat(copy, &attr);
+    if (errno) {
+        printf("PATH: %s\n", copy);
+        perror("getModifiedTime");
+    }
     struct tm* output = malloc(sizeof(struct tm));
     errno = 0;
     output = localtime(&attr.st_mtim.tv_sec);
@@ -134,6 +143,7 @@ void updateUntrackedFile(untrackedFile* file) {
     if (!difftime(time1, time2)) {
         return;
     }
+    printf("FILE HAS BEEN MODIFIED\n");
     (*file)->lastEdited = *newTime;
     (*file)->linesAdded = getLinesInFile((*file)->path);
 }
