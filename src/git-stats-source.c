@@ -17,6 +17,8 @@ int MAXNUMPATHS = 25;
 // LOG_INFO: info for whats going on
 // LOG_DEBUG: use for debug //// only sent when debug is true
 
+static void git_stats_update(void*, obs_data_t*);
+
 struct gitStatsInfo {
     // pointer to the text source
     obs_source_t* textSource;
@@ -59,7 +61,7 @@ static void* git_stats_create(obs_data_t* settings, obs_source_t* source) {
     info->textSource =
         obs_source_create(text_source_id, text_source_id, settings, NULL);
     obs_source_add_active_child(info->gitSource, info->textSource);
-
+    git_stats_update(info, settings);
     obs_log(LOG_INFO, "Source Created");
 
     return (info);
@@ -148,14 +150,7 @@ static void git_stats_update(void* data, obs_data_t* settings) {
         info->data->trackedPaths = segmentString(allRepos, &amtHold);
         info->data->numTrackedFiles = amtHold;
     }
-    /*
-        if (obs_data_get_int(settings, "delay") == NULL) {
-            info->data->delayAmount = 5;
-        }
-        else {
-            info->data->delayAmount = obs_data_get_int(settings, "delay");
-        }
-        */
+
     // do not have to do anything because it handles edge cases for me (based on
     // max and min) and doesn't allow empty input
     info->data->delayAmount = obs_data_get_int(settings, "delay");
@@ -164,9 +159,7 @@ static void git_stats_update(void* data, obs_data_t* settings) {
     info->data->deleted = 0;
 
     if (obs_data_get_bool(settings, "untracked_files")) {
-        if (info->data->untracked == NULL) {
-            info->data->untracked = createHashMap();
-        }
+        info->data->untracked = createHashMap();
         createUntrackedFilesHM(info->data);
     }
 }
