@@ -219,24 +219,37 @@ static void git_stats_tick(void* data, float seconds) {
 static obs_properties_t* git_stats_properties(void* unused) {
     struct gitStatsInfo* info = unused;
     UNUSED_PARAMETER(unused);
-    obs_properties_t* props = obs_source_properties(info->textSource);
+    obs_properties_t* props = obs_properties_create();
 
-    // remove certain properties from the freetype text source
-    obs_properties_remove_by_name(props, "text");
-    obs_properties_remove_by_name(props, "text_file");
-    obs_properties_remove_by_name(props, "from_file");
-    obs_properties_remove_by_name(props, "log_mode");
-    obs_properties_remove_by_name(props, "log_lines");
-    obs_properties_remove_by_name(props, "word_wrap");
+    //////////////////
+    obs_properties_t* repo_props = obs_properties_create();
 
     obs_properties_add_text(
-        props, "repos", "Repositiories", OBS_TEXT_MULTILINE);
+        repo_props, "repos", "Repositiories", OBS_TEXT_MULTILINE);
 
     obs_properties_add_int(
-        props, "delay", "Delay Between Updates", 0, INT_MAX, 1);
+        repo_props, "delay", "Delay Between Updates", 0, INT_MAX, 1);
 
     obs_properties_add_bool(
-        props, "untracked_files", "Account For Untracked Files");
+        repo_props, "untracked_files", "Account For Untracked Files");
+
+    obs_properties_add_group(
+        props, "repo_properties", "Repository Settings", OBS_GROUP_NORMAL,
+        repo_props);
+
+    ///////////////
+
+    obs_properties_t* text1_props = obs_source_properties(info->textSource);
+    obs_properties_remove_by_name(text1_props, "text_file");
+    obs_properties_remove_by_name(text1_props, "from_file");
+    obs_properties_remove_by_name(text1_props, "log_mode");
+    obs_properties_remove_by_name(text1_props, "log_lines");
+    obs_properties_remove_by_name(text1_props, "word_wrap");
+    obs_properties_remove_by_name(text1_props, "text");
+
+    obs_properties_add_group(
+        props, "text_properties", "Text Settings", OBS_GROUP_NORMAL,
+        text1_props);
 
     return props;
 }

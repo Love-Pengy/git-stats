@@ -110,17 +110,23 @@
   - basically implemented when hashmap was recreated
 - ~~allow updating of the source in the update function just don't update the contents of it in relation to the plugin~~
 - ~~make untracked files not accounted for when unticking untracked files bool from a ticked state~~
+- ~~see if its possible to use restrict keyword to fix pointer issue for -O0 compilation~~
+- ~~reorder the properties so that the text properties are at the bottom~~
+  - ~~instead use a group to better categorize the options (unless I find a way to reorder)~~
+    - ~~changed this to be both at the same time. Grouping is put into place and order has been changed to put git-stats settings on top~~
 
-- see if its possible to use restrict keyword to fix pointer issue for -O0 compilation
-- reorder the properties so that the text properties are at the bottom
 - figure out a way to do popups or something else for the user so they know when errors have happened
 - figure out how to allow directories to be specified that hold multiple repos
   - make this a seperate field
-- for the directory specification use this:
-  - <https://docs.obsproject.com/reference-properties?highlight=properties#c.obs_properties_add_path>
+  - use this to make it purdyy
+    - <https://docs.obsproject.com/reference-properties?highlight=properties#c.obs_properties_add_path>
+
 - change the single repo list to this:  
   - <https://docs.obsproject.com/reference-properties?highlight=properties#c.obs_properties_add_editable_list>
+
 - mess around with p_threads
+- figure out how to use gh actions to build
+- test the build on a different env (prolly arch peecee)
 
 ## NOTES
 
