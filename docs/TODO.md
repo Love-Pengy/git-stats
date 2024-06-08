@@ -114,16 +114,16 @@
 - ~~reorder the properties so that the text properties are at the bottom~~
   - ~~instead use a group to better categorize the options (unless I find a way to reorder)~~
     - ~~changed this to be both at the same time. Grouping is put into place and order has been changed to put git-stats settings on top~~
+- ~~change the single repo list to this:  ~~
+  - ~~<https://docs.obsproject.com/reference-properties?highlight=properties#c.obs_properties_add_editable_list>~~
+  - this does not give me the functionality I want as I am working with dirs not files
 
 - figure out a way to do popups or something else for the user so they know when errors have happened
 - figure out how to allow directories to be specified that hold multiple repos
   - make this a seperate field
   - use this to make it purdyy
     - <https://docs.obsproject.com/reference-properties?highlight=properties#c.obs_properties_add_path>
-
-- change the single repo list to this:  
-  - <https://docs.obsproject.com/reference-properties?highlight=properties#c.obs_properties_add_editable_list>
-
+- split up insertions and deletions into two different text sources
 - mess around with p_threads
 - figure out how to use gh actions to build
 - test the build on a different env (prolly arch peecee)
@@ -140,3 +140,14 @@ valgrind --leak-check=full \
          --log-file=valgrind-out.txt \
          ./executable exampleParam1
 ``` the program runs perfectly
+
+### psuedo for dirs
+
+**NOTE: THIS IS RUN ONLY ON UPDATE AFTER THE UPDATING AND CLEARING OF THE TRACKED PATHS** 
+- ~~grab repo dir from properties~~
+- verify that repo exists
+- grab all of the dir strings within the repo 
+- verify that all of these dirs are git repos 
+    - verify that the dirs don't already exist
+    - if is valid git repo add to tracked paths
+    - else skip this dir

@@ -325,3 +325,38 @@ void updateTrackedFiles(struct gitData* data) {
     data->added += insertions;
     data->deleted += deletions;
 }
+
+void addGitRepoDir(struct gitData* data, char* repoDirPath) {
+    /*- grab all of the dir strings within the repo */
+    /*- verify that all of these dirs are git repos */
+    /*    - verify that the dirs don't already exist*/
+    /*    - if is valid git repo add to tracked paths*/
+    /*    - else skip this dir*/
+    DIR* dptr;
+    char* buffer;
+
+    // check if the directory exists
+    errno = 0;
+    buffer = malloc(sizeof(char) * (strlen(repoDirPath) + 8));
+    if (errno) {
+        perror("git-diff-interface(addGitRepoDir)");
+        return;
+    }
+    buffer[0] = '\0';
+
+    if (repoDirPath[strlen(repoDirPath) - 1] != '/') {
+        repoDirPath = formatEndPathChar(repoDirPath);
+    }
+    strcpy(buffer, repoDirPath);
+    if (buffer[0] == '~') {
+        expandHomeDir(&buffer);
+    }
+    dptr = opendir(buffer);
+    if (errno) {
+        closedir(dptr);
+        return;
+    }
+    closedir(dptr);
+
+    return;
+}

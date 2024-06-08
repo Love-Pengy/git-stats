@@ -134,7 +134,8 @@ char** segmentString(char* string, int* numPaths) {
 static void git_stats_update(void* data, obs_data_t* settings) {
     struct gitStatsInfo* info = data;
     UNUSED_PARAMETER(data);
-
+    printf(
+        "TEST: |%d|\n", !strcmp(obs_data_get_string(settings, "repoDir"), ""));
     char* allRepos = malloc(
         sizeof(char) * (strlen(obs_data_get_string(settings, "repos")) + 1));
     allRepos[0] = '\0';
@@ -151,6 +152,9 @@ static void git_stats_update(void* data, obs_data_t* settings) {
         info->data->numTrackedFiles = amtHold;
     }
 
+    if ((strcmp(obs_data_get_string(settings, "repoDir")) && (obs_data_get_string(settings, "repoDir") != NULL)) {
+        addGitRepoDir(info->data, obs_data_get_string(settings, "repoDir"));  
+    }
     // do not have to do anything because it handles edge cases for me (based on
     // max and min) and doesn't allow empty input
     info->data->delayAmount = obs_data_get_int(settings, "delay");
@@ -221,8 +225,11 @@ static obs_properties_t* git_stats_properties(void* unused) {
     UNUSED_PARAMETER(unused);
     obs_properties_t* props = obs_properties_create();
 
-    //////////////////
     obs_properties_t* repo_props = obs_properties_create();
+
+    obs_properties_add_path(
+        repo_props, "repoDir", "Directory Holding Repositories",
+        OBS_PATH_DIRECTORY, NULL, NULL);
 
     obs_properties_add_text(
         repo_props, "repos", "Repositiories", OBS_TEXT_MULTILINE);
