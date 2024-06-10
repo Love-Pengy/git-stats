@@ -10,7 +10,6 @@
 #include "./hashMap/include/hashMap.h"
 #include "hashMap/lib/include/untrackedFile.h"
 #include "support.h"
-int MAXNUMPATHS = 25;
 
 // LOG_ERROR: for errors that don't require the program to exit
 // LOG_WARNING: when error occurs and is recoverable
@@ -134,8 +133,6 @@ char** segmentString(char* string, int* numPaths) {
 static void git_stats_update(void* data, obs_data_t* settings) {
     struct gitStatsInfo* info = data;
     UNUSED_PARAMETER(data);
-    printf(
-        "TEST: |%d|\n", !strcmp(obs_data_get_string(settings, "repoDir"), ""));
     char* allRepos = malloc(
         sizeof(char) * (strlen(obs_data_get_string(settings, "repos")) + 1));
     allRepos[0] = '\0';
@@ -152,8 +149,10 @@ static void git_stats_update(void* data, obs_data_t* settings) {
         info->data->numTrackedFiles = amtHold;
     }
 
-    if ((strcmp(obs_data_get_string(settings, "repoDir")) && (obs_data_get_string(settings, "repoDir") != NULL)) {
-        addGitRepoDir(info->data, obs_data_get_string(settings, "repoDir"));  
+    if (strcmp(obs_data_get_string(settings, "repoDir"), "") &&
+        (obs_data_get_string(settings, "repoDir") != NULL)) {
+        addGitRepoDir(
+            info->data, (char*)obs_data_get_string(settings, "repoDir"));
     }
     // do not have to do anything because it handles edge cases for me (based on
     // max and min) and doesn't allow empty input

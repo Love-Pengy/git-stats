@@ -1,3 +1,5 @@
+#include "git-diff-interface.h"
+
 #include <assert.h>
 #include <dirent.h>
 #include <errno.h>
@@ -9,12 +11,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-// is i tcuase somehtin gisn't here?
-//  #include "./git-stats-source.h"
+
 #include "./hashMap/include/hashMap.h"
 #include "./hashMap/lib/include/untrackedFile.h"
 #include "./support.h"
-#include "git-diff-interface.h"
 
 bool checkInsertions(char* input) {
     if (input == NULL) {
@@ -326,6 +326,16 @@ void updateTrackedFiles(struct gitData* data) {
     data->deleted += deletions;
 }
 
+bool checkRepoExists(char** repos, int amtRepos, char* checkPath) {
+    for (int i = 0; i < amtRepos; i++) {
+        if (!strcmp(repos[i], checkPath)) {
+            printf("TEST: %s | %s\n", repos[i], checkPath);
+            return (true);
+        }
+    }
+    return (false);
+}
+
 void addGitRepoDir(struct gitData* data, char* repoDirPath) {
     /*- grab all of the dir strings within the repo */
     /*- verify that all of these dirs are git repos */
@@ -354,9 +364,61 @@ void addGitRepoDir(struct gitData* data, char* repoDirPath) {
     dptr = opendir(buffer);
     if (errno) {
         closedir(dptr);
+        perror("Failed To Open Directory\n");
         return;
     }
     closedir(dptr);
 
-    return;
+    // grab all directories within the repo dir
+    DIR* dp = opendir(repoDirPath);
+    struct dirent* dirStruct = readdir(dp);
+
+    if (strcmp(dirStruct->d_name, ".") && strcmp(dirStruct->d_name, "..") &&
+        (dirStruct != NULL)) {
+        char* tmpFilePath = malloc(
+            sizeof(char) *
+            (strlen(dirStruct->d_name) + strlen(repoDirPath) + 2));
+        tmpFilePath[0] = '\0';
+        snprintf(
+            tmpFilePath, (strlen(repoDirPath) + strlen(dirStruct->d_name) + 1),
+            "%s%s", repoDirPath, dirStruct->d_name);
+        if (checkPath(tmpFilePath)) {
+            if (data->numTrackedFiles == 0) {
+                data->trackedPaths = malloc(sizeof(char*) * MAXNUMPATHS);
+            }
+            if (!checkRepoExists(
+                    data->trackedPaths, data->numTrackedFiles, tmpFilePath)) {
+                data->trackedPaths[data->numTrackedFiles] =
+                    malloc(sizeof(char) * (strlen(tmpFilePath) + 1));
+                strncpy(
+                    data->trackedPaths[data->numTrackedFiles], tmpFilePath,
+                    (strlen(tmpFilePath) + 1));
+                data->numTrackedFiles++;
+            }
+        }
+    }
+    while ((dirStruct = readdir(dp))) {
+        if (strcmp(dirStruct->d_name, ".") && strcmp(dirStruct->d_name, "..")) {
+            char* tmpFilePath = malloc(
+                sizeof(char) *
+                (strlen(dirStruct->d_name) + strlen(repoDirPath) + 2));
+            tmpFilePath[0] = '\0';
+            snprintf(
+                tmpFilePath,
+                (strlen(repoDirPath) + strlen(dirStruct->d_name) + 1), "%s%s",
+                repoDirPath, dirStruct->d_name);
+            if (checkPath(tmpFilePath)) {
+                if (!checkRepoExists(
+                        data->trackedPaths, data->numTrackedFiles,
+                        tmpFilePath)) {
+                    data->trackedPaths[data->numTrackedFiles] =
+                        malloc(sizeof(char) * (strlen(tmpFilePath) + 1));
+                    strncpy(
+                        data->trackedPaths[data->numTrackedFiles], tmpFilePath,
+                        (strlen(tmpFilePath) + 1));
+                    data->numTrackedFiles++;
+                }
+            }
+        }
+    }
 }

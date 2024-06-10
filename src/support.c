@@ -4,6 +4,7 @@
 #include <stdlib.h>
 const char* PLUGIN_NAME = "git-stats";
 const char* PLUGIN_VERSION = "0.0.0";
+int MAXNUMPATHS = 100;
 
 void obs_log(int log_level, const char* format, ...) {
     size_t length = 4 + strlen(PLUGIN_NAME) + strlen(format);
