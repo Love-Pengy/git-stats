@@ -202,7 +202,11 @@ static void git_stats_tick(void* data, float seconds) {
             updateTrackedFiles(info->data);
         }
         if (info->data->untracked != NULL) {
+            printf("FIRST: ");
+            printHM(info->data->untracked);
             updateValueHM(&(info->data->untracked));
+            printf("SECOND: ");
+            printHM(info->data->untracked);
             info->data->added += getLinesAddedHM(&(info->data->untracked));
         }
         char outputBuffer[100] = "\0";

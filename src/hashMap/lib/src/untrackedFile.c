@@ -67,10 +67,11 @@ struct tm* getModifiedTime(char* path) {
     copy[0] = '\0';
     strcpy(copy, path);
     errno = 0;
-    expandHomeDir(&copy);
+    if (copy[0] == '~') {
+        expandHomeDir(&copy);
+    }
     stat(copy, &attr);
     if (errno) {
-        printf("PATH: %s\n", copy);
         perror("getModifiedTime");
     }
     struct tm* output = malloc(sizeof(struct tm));
@@ -98,7 +99,9 @@ long getLinesInFile(char* path) {
     char* pathCpy = malloc(sizeof(char) * 1000);
     pathCpy[0] = '\0';
     strcpy(pathCpy, path);
-    expandHomeDir(&pathCpy);
+    if (pathCpy[0] == '~') {
+        expandHomeDir(&pathCpy);
+    }
     fptr = fopen(pathCpy, "r");
     if (errno) {
         printf("%s: %s\n", pathCpy, strerror(errno));
@@ -143,7 +146,6 @@ void updateUntrackedFile(untrackedFile* file) {
     if (!difftime(time1, time2)) {
         return;
     }
-    printf("FILE HAS BEEN MODIFIED\n");
     (*file)->lastEdited = *newTime;
     (*file)->linesAdded = getLinesInFile((*file)->path);
 }

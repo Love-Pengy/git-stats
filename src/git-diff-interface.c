@@ -44,6 +44,7 @@ bool checkInsertions(char* input) {
     free(tmpString);
     return (true);
 }
+
 bool checkDeletions(char* input) {
     if (input == NULL) {
         return (false);
@@ -329,7 +330,6 @@ void updateTrackedFiles(struct gitData* data) {
 bool checkRepoExists(char** repos, int amtRepos, char* checkPath) {
     for (int i = 0; i < amtRepos; i++) {
         if (!strcmp(repos[i], checkPath)) {
-            printf("TEST: %s | %s\n", repos[i], checkPath);
             return (true);
         }
     }
