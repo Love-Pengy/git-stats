@@ -21,6 +21,8 @@ static void git_stats_update(void*, obs_data_t*);
 struct gitStatsInfo {
     // pointer to the text source
     obs_source_t* textSource;
+    // pointer to the deletion text source
+    obs_source_t* deletionSource;
     // pointer to our source!!
     obs_source_t* gitSource;
     // length of the text source
@@ -58,8 +60,12 @@ static void* git_stats_create(obs_data_t* settings, obs_source_t* source) {
 
     // the text source
     info->textSource =
-        obs_source_create(text_source_id, text_source_id, settings, NULL);
+        obs_source_create(text_source_id, "insertionSource", settings, NULL);
     obs_source_add_active_child(info->gitSource, info->textSource);
+    info->deletionSource =
+        obs_source_create(text_source_id, "deletionSource", NULL, NULL);
+    obs_source_add_active_child(info->gitSource, info->deletionSource);
+
     git_stats_update(info, settings);
     obs_log(LOG_INFO, "Source Created");
 
@@ -70,9 +76,10 @@ static void* git_stats_create(obs_data_t* settings, obs_source_t* source) {
 static void git_stats_destroy(void* data) {
     struct gitStatsInfo* info = data;
 
-    obs_source_remove(info->textSource);
-    obs_source_release(info->textSource);
+    obs_source_remove_active_child(info->gitSource, info->textSource);
+    obs_source_remove_active_child(info->gitSource, info->deletionSource);
     info->textSource = NULL;
+    info->deletionSource = NULL;
 
     bfree(info->data);
     info->data = NULL;
@@ -86,14 +93,18 @@ static void git_stats_destroy(void* data) {
 static uint32_t git_stats_width(void* data) {
     struct gitStatsInfo* info = data;
 
-    return (obs_source_get_width(info->textSource));
+    return (
+        obs_source_get_width(info->textSource) +
+        obs_source_get_width(info->deletionSource));
 }
 
 // get the height needed for the source
 static uint32_t git_stats_height(void* data) {
     struct gitStatsInfo* info = data;
 
-    return (obs_source_get_height(info->textSource));
+    return (
+        obs_source_get_height(info->textSource) +
+        obs_source_get_height(info->deletionSource));
 }
 
 // set the settings defaults for the source
@@ -154,6 +165,7 @@ static void git_stats_update(void* data, obs_data_t* settings) {
         addGitRepoDir(
             info->data, (char*)obs_data_get_string(settings, "repoDir"));
     }
+
     // do not have to do anything because it handles edge cases for me (based on
     // max and min) and doesn't allow empty input
     info->data->delayAmount = obs_data_get_int(settings, "delay");
@@ -170,12 +182,34 @@ static void git_stats_update(void* data, obs_data_t* settings) {
         (info->data->untracked != NULL)) {
         info->data->untracked = createHashMap();
     }
+
+    // Set deletion text source to copy the insertion one
+    /*obs_data_set_obj(*/
+    /*    info->deletionSource->context.settings, "font",*/
+    /*    obs_data_get_obj(settings, "font"));*/
+    obs_data_set_bool(
+        info->deletionSource->context.settings, "antialiasing",
+        obs_data_get_bool(settings, "antialiasing"));
+    /*obs_data_set_obj(*/
+    /*    info->deletionSource->context.settings, "color1",*/
+    /*    obs_data_get_obj(settings, "color1"));*/
+    /*obs_data_set_obj(*/
+    /*    info->deletionSource->context.settings, "color2",*/
+    /*    obs_data_get_obj(settings, "color2"));*/
+    obs_data_set_bool(
+        info->deletionSource->context.settings, "outline",
+        obs_data_get_bool(settings, "outline"));
+    obs_data_set_bool(
+        info->deletionSource->context.settings, "drop_shadow",
+        obs_data_get_bool(settings, "drop_shadow"));
 }
 
 // render out the source
 static void git_stats_render(void* data, gs_effect_t* effect) {
     struct gitStatsInfo* info = data;
+    // obs_source_video_render(info->deletionSource);
     obs_source_video_render(info->textSource);
+    obs_source_video_render(info->deletionSource);
     UNUSED_PARAMETER(effect);
 }
 
@@ -194,6 +228,10 @@ static void git_stats_tick(void* data, float seconds) {
             obs_data_set_string(info->textSource->context.settings, "text", "");
             obs_source_update(
                 info->textSource, info->textSource->context.settings);
+            obs_data_set_string(
+                info->deletionSource->context.settings, "text", "");
+            obs_source_update(
+                info->deletionSource, info->deletionSource->context.settings);
             return;
         }
         else {
@@ -202,22 +240,31 @@ static void git_stats_tick(void* data, float seconds) {
             updateTrackedFiles(info->data);
         }
         if (info->data->untracked != NULL) {
-            printf("FIRST: ");
-            printHM(info->data->untracked);
             updateValueHM(&(info->data->untracked));
-            printf("SECOND: ");
-            printHM(info->data->untracked);
             info->data->added += getLinesAddedHM(&(info->data->untracked));
         }
         char outputBuffer[100] = "\0";
+        snprintf(
+            outputBuffer, strlen(ltoa(info->data->added)) + 2, "+%s",
+            ltoa(info->data->added));
+        obs_data_set_string(
+            info->textSource->context.settings, "text", outputBuffer);
+        obs_source_update(info->textSource, info->textSource->context.settings);
+        strncpy(outputBuffer, "", 1);
+        snprintf(
+            outputBuffer, strlen(ltoa(info->data->deleted)) + 2, "-%s",
+            ltoa(info->data->deleted));
+        obs_data_set_string(
+            info->deletionSource->context.settings, "text", outputBuffer);
+        obs_source_update(
+            info->deletionSource, info->deletionSource->context.settings);
+        /*
         snprintf(
             outputBuffer,
             strlen(ltoa(info->data->added)) +
                 strlen(ltoa(info->data->deleted)) + 4,
             "+%s -%s", ltoa(info->data->added), ltoa(info->data->deleted));
-        obs_data_set_string(
-            info->textSource->context.settings, "text", outputBuffer);
-        obs_source_update(info->textSource, info->textSource->context.settings);
+        */
     }
 }
 
@@ -256,6 +303,7 @@ static obs_properties_t* git_stats_properties(void* unused) {
     obs_properties_remove_by_name(text1_props, "log_lines");
     obs_properties_remove_by_name(text1_props, "word_wrap");
     obs_properties_remove_by_name(text1_props, "text");
+    obs_properties_remove_by_name(text1_props, "custom_width");
 
     obs_properties_add_group(
         props, "text_properties", "Text Settings", OBS_GROUP_NORMAL,

@@ -1,13 +1,13 @@
 ## FEATURES
 
-- specify multiple repos
-- set refresh rate
-- untracked files
+- ~~specify multiple repos~~
+- ~~set refresh rate~~
+- ~~untracked files~~
 - plus lines && minus lines
   - enable
-  - change font
+  - ~~change font~~
   - font size
-  - color
+  - ~~color~~
   - number only
 - text will always be centered
   - or this could also be a more creative way like every 1k put an indicator somewhere
@@ -34,8 +34,8 @@
 
 ## TIMELINE
 
-- create the utility using purely the command line
-- fix builing of the plugin
+- ~~create the utility using purely the command line~~
+- ~~fix builing of the plugin~~
 - slap that bad boi in obs form
 - $$profit$$
 
@@ -57,16 +57,6 @@
   - ~~get the updating fixed~~
 - ~~create module for hash table implementation~~
   - ~~create submodule for hash table input~~
-
-- implement git diff into the plugin
-- reformat git-diff implementation to be a module and not a run file itself
-- add the ability to get untracked files
-  - use this command to get the file path of the untracked files ```git ls-files --others --exclude-standard```
-  - given the output of this command count the number of lines in that file at the current moment and store it in a hash table
-  - add this to the count of insertions/deletions (depending on the original value)
-  - when getting these untracked files ignore executables
-
-## CURRENT PATH
 
 - ~~test updateValue in the hash table~~
 - NOTE: SPLIT THIS UP INTO EACH PART AND CALL THEM FROM THE SOURCE FILE
@@ -122,13 +112,37 @@
   - ~~use this to make it purdyy~~
     - ~~<https://docs.obsproject.com/reference-properties?highlight=properties#c.obs_properties_add_path>~~
   - ~~check if a directory already exists in the tracked paths array before adding it via addGitRepoDir~~
+- ~~fix untracked file pathing~~
 
-- fix untracked file pathing
-- figure out a way to do popups or something else for the user so they know when errors have happened
+- ~~implement git diff into the plugin~~
+  - ~~reformat git-diff implementation to be a module and not a run file itself~~
+  - ~~add the ability to get untracked files~~
+  - ~~use this command to get the file path of the untracked files ```git ls-files --others --exclude-standard```~~
+  - ~~given the output of this command count the number of lines in that file at the current moment and store it in a hash table~~
+  - ~~add this to the count of insertions/deletions (depending on the original value)~~
+  - when getting these untracked files ignore executables
+- ~~look into clarity of text source~~
+
 - split up insertions and deletions into two different text sources
-- mess around with p_threads
+  - in tick split up the string handling into insertions and deletions and pass those to their respective text sources
+  - in update we need to somehow change the settings of one source and then pass that onto the second one as well
+- figure out a way to do popups or something else for the user so they know when errors have happened
+- allow enabling and disabling of insertion deletions
+- allow the user to get rid of the + and - signs
+  - account for spacing with this
+- create overflow indicators to give constraints without editing the underlying text source
+  - CURRENT IDEA:
+    - max both insertions and deletions to 9999 each
+    - each time the number gets above that threshold put a period over the number (max of 4)
+    - use monospace/nerdfont for this
+    - manage spaces in between the numbers
+      - example:
+        - put one space in between +9999 and -9999 with the four dots above the numbers
+        - when plugin overflows one of these values add spaces in between insertions and deletions to keep spacing consistent
+- figure out why last number of deletions flickers
 - figure out how to use gh actions to build
 - test the build on a different env (prolly arch peecee)
+- mess around with p_threads
 
 ## NOTES
 
