@@ -10,7 +10,9 @@ struct gitData {
     hashMap untracked;
     char** trackedPaths;
     int numTrackedFiles;
+    bool insertionEnabled;
     long added;
+    bool deletionEnabled;
     long deleted;
     int delayAmount;
 };

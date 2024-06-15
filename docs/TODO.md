@@ -125,9 +125,13 @@
 
 - split up insertions and deletions into two different text sources
   - in tick split up the string handling into insertions and deletions and pass those to their respective text sources
-  - in update we need to somehow change the settings of one source and then pass that onto the second one as well
+  - ~~in update we need to somehow change the settings of one source and then pass that onto the second one as well~~
+    - changing to both having their own unique settings
+
 - figure out a way to do popups or something else for the user so they know when errors have happened
+  - checkoiut this: <https://docs.obsproject.com/reference-properties#c.obs_property_text_set_info_type>
 - allow enabling and disabling of insertion deletions
+- for default properties figure out a way to make insertions green and deletions red
 - allow the user to get rid of the + and - signs
   - account for spacing with this
 - create overflow indicators to give constraints without editing the underlying text source
@@ -156,6 +160,12 @@ valgrind --leak-check=full \
          --log-file=valgrind-out.txt \
          ./executable exampleParam1
 ```
+
+### Psuedo for updating the deletion source
+
+- ~~create properties managed by me,~~
+- ~~in update use ```obs_data_set_blah``` to set the properties of the source~~
+  - ~~to get the value to set it to use obs_data_get_blah on settings~~
 
 ### Psuedo For Dirs
 
