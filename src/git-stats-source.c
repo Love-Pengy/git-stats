@@ -114,12 +114,27 @@ static uint32_t git_stats_height(void* data) {
 // TODO make defaults in general but specifically mkae the default colors have
 // an alpha of 255 (so you can see it)
 static void git_stats_get_defaults(obs_data_t* settings) {
+    // repo settings
     obs_data_set_default_bool(settings, "untracked_files", false);
     obs_data_set_default_int(settings, "delay", 5);
-    // TODO do something for font
-    // obs_data_set_default_obj();
-    obs_data_set_default_int(settings, "deletion_color1", 0x00FF00);
-    obs_data_set_default_int(settings, "deletion_color2", 0xFF0000);
+
+    // shared settings
+    obs_data_set_default_bool(settings, "outline", false);
+    obs_data_set_default_bool(settings, "antialiasing", true);
+    obs_data_set_default_bool(settings, "drop_shadow", false);
+
+    obs_data_t* font_obj = obs_data_create();
+    obs_data_set_default_string(font_obj, "face", "Sans Serif");
+    obs_data_set_default_int(font_obj, "size", 256);
+    obs_data_set_default_int(font_obj, "flags", 0);
+    obs_data_set_default_string(font_obj, "style", "");
+    obs_data_set_default_obj(settings, "font", font_obj);
+    obs_data_release(font_obj);
+
+    // deletion color
+    obs_data_set_default_int(settings, "deletion_color1", 0xFFFFFFFF);
+    obs_data_set_default_int(settings, "deletion_color2", 0xFFFFFFFF);
+    printf("TEST: %lld\n", obs_data_get_int(settings, "deletion_color1"));
 }
 
 // takes string and delimits it by newline chars
@@ -161,10 +176,10 @@ static void git_stats_update(void* data, obs_data_t* settings) {
     // copy settings from dummy props to the deletion source
     obs_data_set_obj(
         info->deletionSource->context.settings, "font",
-        obs_data_get_obj(settings, "deletion_font"));
+        obs_data_get_obj(settings, "font"));
     obs_data_set_bool(
         info->deletionSource->context.settings, "antialiasing",
-        obs_data_get_bool(settings, "deletion_antialiasing"));
+        obs_data_get_bool(settings, "antialiasing"));
     obs_data_set_int(
         info->deletionSource->context.settings, "color1",
         obs_data_get_int(settings, "deletion_color1"));
@@ -173,10 +188,10 @@ static void git_stats_update(void* data, obs_data_t* settings) {
         obs_data_get_int(settings, "deletion_color2"));
     obs_data_set_bool(
         info->deletionSource->context.settings, "outline",
-        obs_data_get_bool(settings, "deletion_outline"));
+        obs_data_get_bool(settings, "outline"));
     obs_data_set_bool(
         info->deletionSource->context.settings, "drop_shadow",
-        obs_data_get_bool(settings, "deletion_drop_shadow"));
+        obs_data_get_bool(settings, "drop_shadow"));
 
     char* allRepos = malloc(
         sizeof(char) * (strlen(obs_data_get_string(settings, "repos")) + 1));
@@ -333,9 +348,24 @@ static obs_properties_t* git_stats_properties(void* unused) {
         props, "repo_properties", "Repository Settings", OBS_GROUP_NORMAL,
         repo_props);
 
+    obs_properties_t* shared_props = obs_source_properties(info->textSource);
+    obs_properties_remove_by_name(shared_props, "text_file");
+    obs_properties_remove_by_name(shared_props, "from_file");
+    obs_properties_remove_by_name(shared_props, "log_mode");
+    obs_properties_remove_by_name(shared_props, "log_lines");
+    obs_properties_remove_by_name(shared_props, "word_wrap");
+    obs_properties_remove_by_name(shared_props, "text");
+    obs_properties_remove_by_name(shared_props, "custom_width");
+    obs_properties_remove_by_name(shared_props, "color1");
+    obs_properties_remove_by_name(shared_props, "color2");
+    obs_properties_add_group(
+        props, "shared_properties", "Shared Settings", OBS_GROUP_NORMAL,
+        shared_props);
+
     ///////////////
 
     obs_properties_t* text1_props = obs_source_properties(info->textSource);
+    obs_properties_remove_by_name(text1_props, "font");
     obs_properties_remove_by_name(text1_props, "text_file");
     obs_properties_remove_by_name(text1_props, "from_file");
     obs_properties_remove_by_name(text1_props, "log_mode");
@@ -343,6 +373,9 @@ static obs_properties_t* git_stats_properties(void* unused) {
     obs_properties_remove_by_name(text1_props, "word_wrap");
     obs_properties_remove_by_name(text1_props, "text");
     obs_properties_remove_by_name(text1_props, "custom_width");
+    obs_properties_remove_by_name(text1_props, "drop_shadow");
+    obs_properties_remove_by_name(text1_props, "outline");
+    obs_properties_remove_by_name(text1_props, "antialiasing");
 
     obs_properties_add_group(
         props, "text_properties", "Text Settings", OBS_GROUP_CHECKABLE,
@@ -350,37 +383,9 @@ static obs_properties_t* git_stats_properties(void* unused) {
 
     //////////////
 
-    // TODO research these functions and use them to one by one add the
-    // properties with a changed name
-    //  obs_properties_get: get a property by name from the textsource
-    //
-    // obs_properties_t* text2_props =
-    // obs_source_properties(info->deletionSource);
-
     obs_properties_t* text2_props = obs_properties_create();
-    obs_properties_add_font(text2_props, "deletion_font", "font");
-    obs_properties_add_bool(
-        text2_props, "deletion_antialiasing", "antialiasing");
-    obs_properties_add_color(text2_props, "deletion_color1", "Color1");
+    obs_properties_add_color_alpha(text2_props, "deletion_color1", "Color1");
     obs_properties_add_color_alpha(text2_props, "deletion_color2", "Color2");
-
-    obs_properties_add_bool(text2_props, "deletion_outline", "Outline");
-
-    obs_properties_add_bool(text2_props, "deletion_drop_shadow", "Drop Shadow");
-
-    /*obs_property_t* ptr = obs_properties_first(text2_props);*/
-    /*bool checker = ptr ? true : false;*/
-    /*while (checker) {*/
-    /*    enum obs_property_type type = obs_property_get_type(ptr);*/
-    /*    printf("TEST: %d\n", type);*/
-    /*    // TODO look at line 535 of obs-properties.c in obs source code this
-     * is*/
-    /*    // where I'm thinking the data is stored and what we actullay need
-     * to*/
-    /*    // link for data*/
-    /*    obs_data_t* data = get_property_data(ptr);*/
-    /*    checker = obs_property_next(&ptr);*/
-    /*}*/
 
     obs_properties_add_group(
         props, "deletion_properties", "Deletion Settings", OBS_GROUP_CHECKABLE,
@@ -394,9 +399,7 @@ static obs_properties_t* git_stats_properties(void* unused) {
         .id           = "git-stats",
         .type         = OBS_SOURCE_TYPE_INPUT,
         .output_flags = OBS_SOURCE_VIDEO,
-        //get the name of the source
         .get_name     = git_stats_name,
-        //create the internal structures needed for the source
         .create       = git_stats_create,
         .destroy      = git_stats_destroy,
         .update       = git_stats_update,

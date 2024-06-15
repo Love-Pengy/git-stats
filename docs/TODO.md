@@ -127,7 +127,7 @@
   - in tick split up the string handling into insertions and deletions and pass those to their respective text sources
   - ~~in update we need to somehow change the settings of one source and then pass that onto the second one as well~~
     - changing to both having their own unique settings
-
+      - the only truly unique settings are going to be the colors. The rest are going to be linked
 - figure out a way to do popups or something else for the user so they know when errors have happened
   - checkoiut this: <https://docs.obsproject.com/reference-properties#c.obs_property_text_set_info_type>
 - allow enabling and disabling of insertion deletions
