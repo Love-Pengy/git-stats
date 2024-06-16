@@ -129,21 +129,24 @@
       - ~~the only truly unique settings are going to be the colors. The rest are going to be linked~~
 - ~~allow enabling and disabling of insertion deletions~~
 
+- ensure that width and height are consistent and make sense
+- change insertion source name to insertion source (current it is called text source)
+- create overflow indicators to give constraints without editing the underlying text source
+  - CURRENT IDEA:
+    - ~~max both insertions and deletions to 9999 each~~
+    - ~~each time the number gets above that threshold put a period over the number (max of 4)~~
+    - use monospace/nerdfont for this
+      - see if there is a way to force monospace fonts
+    - ~~manage spaces in between the numbers~~
+      - ~~example:~~
+        - ~~put one space in between +9999 and -9999 with the four dots above the numbers~~
+        - ~~when plugin overflows one of these values add spaces in between insertions and deletions to keep spacing consistent~~
+- allow the user to get rid of the + and - signs
+  - account for spacing with this
+- figure out why last number of deletions flickers
 - figure out a way to do popups or something else for the user so they know when errors have happened
   - checkoiut this: <https://docs.obsproject.com/reference-properties#c.obs_property_text_set_info_type>
 - for default properties figure out a way to make insertions green and deletions red
-- allow the user to get rid of the + and - signs
-  - account for spacing with this
-- create overflow indicators to give constraints without editing the underlying text source
-  - CURRENT IDEA:
-    - max both insertions and deletions to 9999 each
-    - each time the number gets above that threshold put a period over the number (max of 4)
-    - use monospace/nerdfont for this
-    - manage spaces in between the numbers
-      - example:
-        - put one space in between +9999 and -9999 with the four dots above the numbers
-        - when plugin overflows one of these values add spaces in between insertions and deletions to keep spacing consistent
-- figure out why last number of deletions flickers
 - figure out how to use gh actions to build
 - test the build on a different env (prolly arch peecee)
 - mess around with p_threads

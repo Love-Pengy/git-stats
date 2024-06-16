@@ -11,6 +11,7 @@
 #include "hashMap/lib/include/untrackedFile.h"
 #include "support.h"
 
+#define OVERLOAD_VAL 9999
 // LOG_ERROR: for errors that don't require the program to exit
 // LOG_WARNING: when error occurs and is recoverable
 // LOG_INFO: info for whats going on
@@ -101,23 +102,16 @@ static void git_stats_destroy(void* data) {
 static uint32_t git_stats_width(void* data) {
     struct gitStatsInfo* info = data;
 
-    return (
-        obs_source_get_width(info->textSource) +
-        obs_source_get_width(info->deletionSource));
+    return (obs_source_get_width(info->deletionSource));
 }
 
 // get the height needed for the source
 static uint32_t git_stats_height(void* data) {
     struct gitStatsInfo* info = data;
 
-    return (
-        obs_source_get_height(info->textSource) +
-        obs_source_get_height(info->deletionSource));
+    return (obs_source_get_height(info->textSource));
 }
 
-// set the settings defaults for the source
-// TODO make defaults in general but specifically mkae the default colors have
-// an alpha of 255 (so you can see it)
 static void git_stats_get_defaults(obs_data_t* settings) {
     // repo settings
     obs_data_set_default_int(settings, "delay", 5);
@@ -127,19 +121,10 @@ static void git_stats_get_defaults(obs_data_t* settings) {
     obs_data_set_default_bool(settings, "outline", false);
     obs_data_set_default_bool(settings, "antialiasing", true);
     obs_data_set_default_bool(settings, "drop_shadow", false);
-    /*
-    obs_data_t* font_obj = obs_data_create();
-    obs_data_set_default_string(font_obj, "face", "Sans Serif");
-    obs_data_set_default_int(font_obj, "size", 255);
-    obs_data_set_default_int(font_obj, "flags", 0);
-    obs_data_set_default_string(font_obj, "style", NULL);
-    obs_data_set_default_obj(settings, "font", font_obj);
-    obs_data_release(font_obj);
-    */
 
     // deletion color
-    obs_data_set_default_int(settings, "deletion_color1", 0xFFFFFFFF);
-    obs_data_set_default_int(settings, "deletion_color2", 0xFFFFFFFF);
+    obs_data_set_default_int(settings, "deletion_color1", 0xFF0000FF);
+    obs_data_set_default_int(settings, "deletion_color2", 0xFF0000FF);
 }
 
 // takes string and delimits it by newline chars
@@ -171,12 +156,7 @@ char** segmentString(char* string, int* numPaths) {
 
 // this runs when you update settings
 static void git_stats_update(void* data, obs_data_t* settings) {
-    // obs_data_set_default_int(settings, "delay", (long long int)5);
     struct gitStatsInfo* info = data;
-    // static obs_properties_t* test = NULL;
-    // test = git_stats_properties(info);
-    // blah = obs_source_properties(info->deletionSource);
-    //
     UNUSED_PARAMETER(data);
 
     // copy settings from dummy props to the deletion source
@@ -292,27 +272,59 @@ static void git_stats_tick(void* data, float seconds) {
             updateValueHM(&(info->data->untracked));
             info->data->added += getLinesAddedHM(&(info->data->untracked));
         }
-        char outputBuffer[100] = "\0";
         if (info->data->insertionEnabled) {
+            // create overload string
+            long value = info->data->added;
+            int numOverload = value / OVERLOAD_VAL;
+            value = value % OVERLOAD_VAL;
+            char overloadString[6] = " ";
+            for (int i = 1; i < numOverload + 1; i++) {
+                overloadString[i] = '.';
+                overloadString[i + 1] = '\0';
+            }
+
+            char outputBuffer[100] = "\0";
             snprintf(
-                outputBuffer, strlen(ltoa(info->data->added)) + 2, "+%s",
-                ltoa(info->data->added));
+                outputBuffer, strlen(overloadString) + strlen(ltoa(value)) + 3,
+                "%s\n+%s", overloadString, ltoa(value));
             obs_data_set_string(
                 info->textSource->context.settings, "text", outputBuffer);
             obs_source_update(
                 info->textSource, info->textSource->context.settings);
         }
         else {
+            char outputBuffer[100] = "\0";
             snprintf(outputBuffer, strlen("") + 1, "%s", "");
             obs_data_set_string(
                 info->textSource->context.settings, "text", outputBuffer);
             obs_source_update(
                 info->textSource, info->textSource->context.settings);
         }
-        strncpy(outputBuffer, "", 1);
+        char outputBuffer[100] = "\0";
+        // strncpy(outputBuffer, "", 1);
+        //  max number of characters is +OVERLOAD_VAL -OVERLOAD_VAL
         if (info->data->deletionEnabled) {
+            long value = info->data->deleted;
+            int numOverload = value / OVERLOAD_VAL;
+            numOverload = 4;
+            value = value % OVERLOAD_VAL;
+            char overloadString[6] = " ";
+            for (int i = 1; i < numOverload + 1; i++) {
+                overloadString[i] = '.';
+                overloadString[i + 1] = '\0';
+            }
+            char spaces[7] = "";
+            // TODO: make this rely on if the +/- are enabled or not
+            int insertionSize = strlen(ltoa(info->data->added)) + 2;
+            for (int i = 0; i < insertionSize; i++) {
+                spaces[i] = ' ';
+                spaces[i + 1] = '\0';
+            }
             snprintf(
-                outputBuffer, strlen(ltoa(info->data->deleted)) + 2, "-%s",
+                outputBuffer,
+                strlen(overloadString) + (strlen(spaces) * 2) +
+                    strlen(ltoa(info->data->deleted)) + 3,
+                "%s%s\n%s-%s", spaces, overloadString, spaces,
                 ltoa(info->data->deleted));
             obs_data_set_string(
                 info->deletionSource->context.settings, "text", outputBuffer);
@@ -382,7 +394,10 @@ static obs_properties_t* git_stats_properties(void* unused) {
     obs_properties_remove_by_name(text1_props, "drop_shadow");
     obs_properties_remove_by_name(text1_props, "outline");
     obs_properties_remove_by_name(text1_props, "antialiasing");
-
+    obs_data_set_default_int(
+        info->textSource->context.settings, "color1", 0xFF00FF00);
+    obs_data_set_default_int(
+        info->textSource->context.settings, "color2", 0xFF00FF00);
     obs_properties_add_group(
         props, "text_properties", "Text Settings", OBS_GROUP_CHECKABLE,
         text1_props);
