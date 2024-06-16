@@ -18,8 +18,10 @@
 
 static void git_stats_update(void*, obs_data_t*);
 
-static obs_properties_t* git_stats_properties(void*);
+static void git_stats_get_defaults(obs_data_t*);
 
+// static bool plugin_created = false;
+static obs_properties_t* git_stats_properties(void*);
 struct gitStatsInfo {
     // pointer to the text source
     obs_source_t* textSource;
@@ -51,7 +53,7 @@ static void* git_stats_create(obs_data_t* settings, obs_source_t* source) {
     info->gitSource = source;
 
     // id for the text source
-    const char* text_source_id = "text_ft2_source";
+    const char* text_source_id = "text_ft2_source_v2";
     info->data = bzalloc(sizeof(struct gitData));
     info->data->trackedPaths = NULL;
     info->data->numTrackedFiles = 0;
@@ -68,6 +70,9 @@ static void* git_stats_create(obs_data_t* settings, obs_source_t* source) {
     info->deletionSource =
         obs_source_create(text_source_id, "deletionSource", NULL, NULL);
     obs_source_add_active_child(info->gitSource, info->deletionSource);
+
+    // ensure that defaults are set AFTER the creation has completed
+    git_stats_get_defaults(settings);
 
     git_stats_update(info, settings);
     obs_log(LOG_INFO, "Source Created");
@@ -115,26 +120,26 @@ static uint32_t git_stats_height(void* data) {
 // an alpha of 255 (so you can see it)
 static void git_stats_get_defaults(obs_data_t* settings) {
     // repo settings
-    obs_data_set_default_bool(settings, "untracked_files", false);
     obs_data_set_default_int(settings, "delay", 5);
+    obs_data_set_default_bool(settings, "untracked_files", false);
 
     // shared settings
     obs_data_set_default_bool(settings, "outline", false);
     obs_data_set_default_bool(settings, "antialiasing", true);
     obs_data_set_default_bool(settings, "drop_shadow", false);
-
+    /*
     obs_data_t* font_obj = obs_data_create();
     obs_data_set_default_string(font_obj, "face", "Sans Serif");
-    obs_data_set_default_int(font_obj, "size", 256);
+    obs_data_set_default_int(font_obj, "size", 255);
     obs_data_set_default_int(font_obj, "flags", 0);
-    obs_data_set_default_string(font_obj, "style", "");
+    obs_data_set_default_string(font_obj, "style", NULL);
     obs_data_set_default_obj(settings, "font", font_obj);
     obs_data_release(font_obj);
+    */
 
     // deletion color
     obs_data_set_default_int(settings, "deletion_color1", 0xFFFFFFFF);
     obs_data_set_default_int(settings, "deletion_color2", 0xFFFFFFFF);
-    printf("TEST: %lld\n", obs_data_get_int(settings, "deletion_color1"));
 }
 
 // takes string and delimits it by newline chars
@@ -166,6 +171,7 @@ char** segmentString(char* string, int* numPaths) {
 
 // this runs when you update settings
 static void git_stats_update(void* data, obs_data_t* settings) {
+    // obs_data_set_default_int(settings, "delay", (long long int)5);
     struct gitStatsInfo* info = data;
     // static obs_properties_t* test = NULL;
     // test = git_stats_properties(info);
@@ -407,6 +413,7 @@ static obs_properties_t* git_stats_properties(void* unused) {
         .get_width    = git_stats_width,
         .get_height   = git_stats_height,
         .video_tick = git_stats_tick, 
-        .get_properties = git_stats_properties
+        .get_properties = git_stats_properties, 
+        .icon_type = OBS_ICON_TYPE_TEXT, 
     };
 // clang-format on

@@ -122,15 +122,15 @@
   - ~~add this to the count of insertions/deletions (depending on the original value)~~
   - when getting these untracked files ignore executables
 - ~~look into clarity of text source~~
-
-- split up insertions and deletions into two different text sources
+- ~~split up insertions and deletions into two different text sources~~
   - in tick split up the string handling into insertions and deletions and pass those to their respective text sources
   - ~~in update we need to somehow change the settings of one source and then pass that onto the second one as well~~
-    - changing to both having their own unique settings
-      - the only truly unique settings are going to be the colors. The rest are going to be linked
+    - ~~changing to both having their own unique settings~~
+      - ~~the only truly unique settings are going to be the colors. The rest are going to be linked~~
+- ~~allow enabling and disabling of insertion deletions~~
+
 - figure out a way to do popups or something else for the user so they know when errors have happened
   - checkoiut this: <https://docs.obsproject.com/reference-properties#c.obs_property_text_set_info_type>
-- allow enabling and disabling of insertion deletions
 - for default properties figure out a way to make insertions green and deletions red
 - allow the user to get rid of the + and - signs
   - account for spacing with this
