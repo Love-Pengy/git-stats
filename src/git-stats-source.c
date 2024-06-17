@@ -12,6 +12,9 @@
 #include "support.h"
 
 #define OVERLOAD_VAL 9999
+
+static bool testMode = false;
+
 // LOG_ERROR: for errors that don't require the program to exit
 // LOG_WARNING: when error occurs and is recoverable
 // LOG_INFO: info for whats going on
@@ -108,8 +111,10 @@ static uint32_t git_stats_width(void* data) {
 // get the height needed for the source
 static uint32_t git_stats_height(void* data) {
     struct gitStatsInfo* info = data;
-
-    return (obs_source_get_height(info->textSource));
+    if (info->data->insertionEnabled) {
+        return (obs_source_get_height(info->textSource));
+    }
+    return (obs_source_get_height(info->deletionSource));
 }
 
 static void git_stats_get_defaults(obs_data_t* settings) {
@@ -125,6 +130,18 @@ static void git_stats_get_defaults(obs_data_t* settings) {
     // deletion color
     obs_data_set_default_int(settings, "deletion_color1", 0xFF0000FF);
     obs_data_set_default_int(settings, "deletion_color2", 0xFF0000FF);
+
+    // make DejaVu Sans Mono the default because sans serif is not mono
+    obs_data_t* font_obj = obs_data_create();
+    obs_data_set_default_string(font_obj, "face", "DejaVu Sans Mono");
+    obs_data_set_default_int(font_obj, "size", 256);
+    obs_data_set_default_int(font_obj, "flags", 0);
+    obs_data_set_default_string(font_obj, "style", "");
+    obs_data_set_default_obj(settings, "font", font_obj);
+
+    // group settings
+    obs_data_set_default_bool(settings, "text_properties", true);
+    obs_data_set_default_bool(settings, "deletion_properties", true);
 }
 
 // takes string and delimits it by newline chars
@@ -200,8 +217,14 @@ static void git_stats_update(void* data, obs_data_t* settings) {
     }
 
     if (allRepos == NULL || !strcmp(allRepos, "")) {
-        obs_data_set_string(info->textSource->context.settings, "text", "");
-        obs_data_set_string(info->deletionSource->context.settings, "text", "");
+        obs_data_set_string(info->textSource->context.settings, "text", "\n+0");
+        obs_data_set_string(
+            info->deletionSource->context.settings, "text", "\n   -0");
+        obs_source_update(info->textSource, info->textSource->context.settings);
+        obs_source_update(
+            info->deletionSource, info->deletionSource->context.settings);
+        info->data->trackedPaths = NULL;
+        info->data->numTrackedFiles = 0;
     }
 
     else {
@@ -253,14 +276,71 @@ static void git_stats_tick(void* data, float seconds) {
     info->time_passed += seconds;
     if (info->time_passed > info->data->delayAmount) {
         info->time_passed = 0;
-        if (info->data->trackedPaths == NULL) {
-            obs_data_set_string(info->textSource->context.settings, "text", "");
+        if (testMode) {
+            int numOverload = 4;
+            char overloadString[6] = " ";
+            for (int i = 1; i < numOverload + 1; i++) {
+                overloadString[i] = '.';
+                overloadString[i + 1] = '\0';
+            }
+            char buffer[30] = "";
+            snprintf(
+                buffer, strlen(ltoa(OVERLOAD_VAL)) + strlen(overloadString) + 3,
+                "%s\n+%s", overloadString, ltoa(OVERLOAD_VAL));
+            obs_data_set_string(
+                info->textSource->context.settings, "text", buffer);
             obs_source_update(
                 info->textSource, info->textSource->context.settings);
+
+            ////////////////////
+
+            char spaces[7] = "";
+            // TODO: make this rely on if the +/- are enabled or not
+            int deletionSize = strlen(ltoa(OVERLOAD_VAL)) + 2;
+            for (int i = 0; i < deletionSize; i++) {
+                spaces[i] = ' ';
+                spaces[i + 1] = '\0';
+            }
+            snprintf(
+                buffer,
+                strlen(overloadString) + (strlen(spaces) * 2) +
+                    strlen(ltoa(OVERLOAD_VAL)) + 3,
+                "%s%s\n%s-%s", spaces, overloadString, spaces,
+                ltoa(OVERLOAD_VAL));
             obs_data_set_string(
-                info->deletionSource->context.settings, "text", "");
+                info->deletionSource->context.settings, "text", buffer);
             obs_source_update(
                 info->deletionSource, info->deletionSource->context.settings);
+
+            return;
+        }
+        if (info->data->trackedPaths == NULL) {
+            if (info->data->insertionEnabled) {
+                obs_data_set_string(
+                    info->textSource->context.settings, "text", "\n+0");
+                obs_source_update(
+                    info->textSource, info->textSource->context.settings);
+            }
+            else {
+                obs_data_set_string(
+                    info->textSource->context.settings, "text", " ");
+                obs_source_update(
+                    info->textSource, info->textSource->context.settings);
+            }
+            if (info->data->deletionEnabled) {
+                obs_data_set_string(
+                    info->deletionSource->context.settings, "text", "\n   -0");
+                obs_source_update(
+                    info->deletionSource,
+                    info->deletionSource->context.settings);
+            }
+            else {
+                obs_data_set_string(
+                    info->deletionSource->context.settings, "text", "     ");
+                obs_source_update(
+                    info->deletionSource,
+                    info->deletionSource->context.settings);
+            }
             return;
         }
         else {
@@ -306,7 +386,6 @@ static void git_stats_tick(void* data, float seconds) {
         if (info->data->deletionEnabled) {
             long value = info->data->deleted;
             int numOverload = value / OVERLOAD_VAL;
-            numOverload = 4;
             value = value % OVERLOAD_VAL;
             char overloadString[6] = " ";
             for (int i = 1; i < numOverload + 1; i++) {
@@ -332,13 +411,34 @@ static void git_stats_tick(void* data, float seconds) {
                 info->deletionSource, info->deletionSource->context.settings);
         }
         else {
-            snprintf(outputBuffer, strlen("") + 1, "%s", "");
+            char spaces[7] = "";
+            // TODO: make this rely on if the +/- are enabled or not
+            int insertionSize = strlen(ltoa(info->data->added)) + 2;
+            for (int i = 0; i < insertionSize; i++) {
+                spaces[i] = ' ';
+                spaces[i + 1] = '\0';
+            }
+            snprintf(
+                outputBuffer, strlen(spaces) + strlen(" ") + 1, "%s%s", spaces,
+                " ");
             obs_data_set_string(
                 info->deletionSource->context.settings, "text", outputBuffer);
             obs_source_update(
                 info->deletionSource, info->deletionSource->context.settings);
         }
     }
+}
+
+// Toggle test setting
+static bool toggleTestCallback(
+    obs_properties_t* properties, obs_property_t* buttonProps, void* data) {
+    UNUSED_PARAMETER(properties);
+    UNUSED_PARAMETER(buttonProps);
+    UNUSED_PARAMETER(data);
+    testMode ^= 1;
+    // struct gitStatsInfo* info = data;
+    // git_stats_update(data, obs_source_get_settings(info->gitSource));
+    return (true);
 }
 
 // what autogenerates the UI that I can get user data from
@@ -362,9 +462,14 @@ static obs_properties_t* git_stats_properties(void* unused) {
     obs_properties_add_bool(
         repo_props, "untracked_files", "Account For Untracked Files");
 
+    obs_properties_add_button(
+        repo_props, "test_button", "Toggle Text", toggleTestCallback);
+
     obs_properties_add_group(
         props, "repo_properties", "Repository Settings", OBS_GROUP_NORMAL,
         repo_props);
+
+    ///////////////
 
     obs_properties_t* shared_props = obs_source_properties(info->textSource);
     obs_properties_remove_by_name(shared_props, "text_file");

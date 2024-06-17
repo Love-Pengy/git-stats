@@ -1,3 +1,16 @@
+<!--toc:start-->
+- [FEATURES](#features)
+- [OVERALL LOGIC](#overall-logic)
+- [NOTES](#notes)
+- [ASSUMPTIONS](#assumptions)
+- [TIMELINE](#timeline)
+- [TODO](#todo)
+- [Optimistic](#optimistic)
+- [NOTES](#notes)
+  - [Psuedo for updating the deletion source](#psuedo-for-updating-the-deletion-source)
+  - [Psuedo For Dirs](#psuedo-for-dirs)
+<!--toc:end-->
+
 ## FEATURES
 
 - ~~specify multiple repos~~
@@ -128,30 +141,40 @@
     - ~~changing to both having their own unique settings~~
       - ~~the only truly unique settings are going to be the colors. The rest are going to be linked~~
 - ~~allow enabling and disabling of insertion deletions~~
-
-- ensure that width and height are consistent and make sense
-- change insertion source name to insertion source (current it is called text source)
-- create overflow indicators to give constraints without editing the underlying text source
-  - CURRENT IDEA:
+- ~~create overflow indicators to give constraints without editing the underlying text source~~
+  - ~~CURRENT IDEA:~~
     - ~~max both insertions and deletions to 9999 each~~
     - ~~each time the number gets above that threshold put a period over the number (max of 4)~~
-    - use monospace/nerdfont for this
-      - see if there is a way to force monospace fonts
+    - ~~use monospace/nerdfont for this~~
+      - ~~see if there is a way to force monospace fonts~~
+        - just tell the user to use one LOL
     - ~~manage spaces in between the numbers~~
       - ~~example:~~
         - ~~put one space in between +9999 and -9999 with the four dots above the numbers~~
         - ~~when plugin overflows one of these values add spaces in between insertions and deletions to keep spacing consistent~~
+- ~~ensure that width and height are consistent and make sense~~
+  - ~~not going to make the width the same at all times but rather just give the user the ability to "test" it on their own to get the width right~~
+- ~~make NULL output +0 -0 not ""~~
+- ~~make tracked paths (the ones specified by the user in the block) reset to 0 when they're deleted~~
+- ~~make default for both groups enabled~~
+- ~~for default properties figure out a way to make insertions green and deletions red~~
+- ~~make a "test" button that ill just show the maximum values~~
+
+- figure out why last number of deletions flickers
 - allow the user to get rid of the + and - signs
   - account for spacing with this
-- figure out why last number of deletions flickers
 - figure out a way to do popups or something else for the user so they know when errors have happened
   - checkoiut this: <https://docs.obsproject.com/reference-properties#c.obs_property_text_set_info_type>
-- for default properties figure out a way to make insertions green and deletions red
+- change insertion source name to insertion source (current it is called text source)
+  - change the insertion group name to insertion_properties (currently it is text_properties)
 - figure out how to use gh actions to build
 - test the build on a different env (prolly arch peecee)
+
+## Optimistic
+
 - mess around with p_threads
 
-## NOTES
+## DEBUG NOTES
 
 - currently running obs normally seg faults but running with the -O0 and the following valgring command:
 
