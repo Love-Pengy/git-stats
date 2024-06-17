@@ -2,6 +2,8 @@
 
 #include <obs-module.h>
 #include <stdlib.h>
+
+#include "git-diff-interface.h"
 const char* PLUGIN_NAME = "git-stats";
 const char* PLUGIN_VERSION = "0.0.0";
 int MAXNUMPATHS = 100;
@@ -63,4 +65,23 @@ char* getHomePath(void) {
         return (NULL);
     }
     return (getenv("HOME"));
+}
+
+bool checkRepoExists(char** repos, int amtRepos, char* checkPath) {
+    if (repos == NULL || amtRepos == 0) {
+        return (false);
+    }
+    for (int i = 0; i < amtRepos; i++) {
+        // resolve to absolute path so comparison is easy :3
+        if (repos[i][0] == '~') {
+            expandHomeDir(&repos[i]);
+        }
+        if (checkPath[0] == '~') {
+            expandHomeDir(&checkPath);
+        }
+        if (!strcmp(repos[i], checkPath)) {
+            return (true);
+        }
+    }
+    return (false);
 }

@@ -27,8 +27,8 @@ static void git_stats_get_defaults(obs_data_t*);
 // static bool plugin_created = false;
 static obs_properties_t* git_stats_properties(void*);
 struct gitStatsInfo {
-    // pointer to the text source
     obs_source_t* textSource;
+    // pointer to the text source
     // pointer to the deletion text source
     obs_source_t* deletionSource;
     // pointer to our source!!
@@ -158,9 +158,13 @@ char** segmentString(char* string, int* numPaths) {
     buffer = strtok(tmpString, "\n");
     int count = 0;
     while (buffer != NULL) {
-        paths[count] = malloc(sizeof(char) * (strlen(buffer) + 1));
-        strcpy(paths[count], buffer);
-        count++;
+        if (!checkRepoExists(paths, count, buffer)) {
+            paths[count] = malloc(sizeof(char) * (strlen(buffer) + 1));
+            strcpy(paths[count], buffer);
+            count++;
+            buffer = strtok(NULL, "\n");
+            continue;
+        }
         buffer = strtok(NULL, "\n");
     }
     for (int i = count; i < MAXNUMPATHS; i++) {
@@ -269,6 +273,7 @@ static void git_stats_render(void* data, gs_effect_t* effect) {
 // updates the data (called each frame with the time elapsed passed in)
 static void git_stats_tick(void* data, float seconds) {
     struct gitStatsInfo* info = data;
+    // printf("%ld, %ld\n", info->data->added, info->data->deleted);
     if (!obs_source_showing(info->gitSource)) {
         return;
     }

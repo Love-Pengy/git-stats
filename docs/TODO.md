@@ -159,8 +159,13 @@
 - ~~make default for both groups enabled~~
 - ~~for default properties figure out a way to make insertions green and deletions red~~
 - ~~make a "test" button that ill just show the maximum values~~
+- ~~do not allow for duplicate repos~~
+  - ~~check in the user specified strings that it doesn't already exist~~
+  - ~~check when creating the directory thingy that it doesn't already exist~~
 
 - figure out why last number of deletions flickers
+  - cannot reproduce well
+
 - allow the user to get rid of the + and - signs
   - account for spacing with this
 - figure out a way to do popups or something else for the user so they know when errors have happened

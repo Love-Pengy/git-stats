@@ -327,15 +327,6 @@ void updateTrackedFiles(struct gitData* data) {
     data->deleted += deletions;
 }
 
-bool checkRepoExists(char** repos, int amtRepos, char* checkPath) {
-    for (int i = 0; i < amtRepos; i++) {
-        if (!strcmp(repos[i], checkPath)) {
-            return (true);
-        }
-    }
-    return (false);
-}
-
 void addGitRepoDir(struct gitData* data, char* repoDirPath) {
     /*- grab all of the dir strings within the repo */
     /*- verify that all of these dirs are git repos */
