@@ -15,6 +15,8 @@
 
 static bool testMode = false;
 
+static bool INIT_RUN = true;
+
 // LOG_ERROR: for errors that don't require the program to exit
 // LOG_WARNING: when error occurs and is recoverable
 // LOG_INFO: info for whats going on
@@ -133,7 +135,9 @@ static void git_stats_get_defaults(obs_data_t* settings) {
     obs_data_set_default_bool(settings, "deletion_symbol", true);
 
     // insertion opts
-    obs_data_set_default_bool(settings, "add_symbol", true);
+    obs_data_set_default_bool(settings, "insertion_symbol", true);
+    obs_data_set_default_int(settings, "color1", 0xFF00FF00);
+    obs_data_set_default_int(settings, "color2", 0xFF00FF00);
 
     // make DejaVu Sans Mono the default because sans serif is not mono
     obs_data_t* font_obj = obs_data_create();
@@ -284,7 +288,8 @@ static void git_stats_tick(void* data, float seconds) {
     }
 
     info->time_passed += seconds;
-    if (info->time_passed > info->data->delayAmount) {
+    if (info->time_passed > info->data->delayAmount || INIT_RUN) {
+        INIT_RUN |= 1;
         info->time_passed = 0;
         if (testMode) {
             int numOverload = 4;
@@ -496,8 +501,6 @@ static bool toggleTestCallback(
     UNUSED_PARAMETER(buttonProps);
     UNUSED_PARAMETER(data);
     testMode ^= 1;
-    // struct gitStatsInfo* info = data;
-    // git_stats_update(data, obs_source_get_settings(info->gitSource));
     return (true);
 }
 
