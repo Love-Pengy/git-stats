@@ -164,11 +164,11 @@
   - ~~check when creating the directory thingy that it doesn't already exist~~
 - ~~allow the user to get rid of the + and - signs~~
   - ~~account for spacing with this~~
+- ~~make counter not reset to 0 0 after updating props~~
 
 - figure out why last number of deletions flickers
   - cannot reproduce well
 
-- make counter not reset to 0 0 after updating props
 - make the colors apply on startup
   - at the current moment when you boot up obs it uses defaults
 - figure out a way to do popups or something else for the user so they know when errors have happened

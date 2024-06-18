@@ -224,7 +224,9 @@ static void git_stats_update(void* data, obs_data_t* settings) {
         info->data->deletionEnabled = true;
     }
 
-    if (allRepos == NULL || !strcmp(allRepos, "")) {
+    if ((allRepos == NULL || !strcmp(allRepos, "")) &&
+        (obs_data_get_string(settings, "repoDir") == NULL ||
+         !strcmp(obs_data_get_string(settings, "repoDir"), ""))) {
         obs_data_set_string(info->textSource->context.settings, "text", "\n+0");
         obs_data_set_string(
             info->deletionSource->context.settings, "text", "\n   -0");
@@ -277,7 +279,6 @@ static void git_stats_render(void* data, gs_effect_t* effect) {
 // updates the data (called each frame with the time elapsed passed in)
 static void git_stats_tick(void* data, float seconds) {
     struct gitStatsInfo* info = data;
-    // printf("%ld, %ld\n", info->data->added, info->data->deleted);
     if (!obs_source_showing(info->gitSource)) {
         return;
     }
@@ -304,7 +305,6 @@ static void git_stats_tick(void* data, float seconds) {
             ////////////////////
 
             char spaces[7] = "";
-            // TODO: make this rely on if the +/- are enabled or not
             int deletionSize = strlen(ltoa(OVERLOAD_VAL)) + 2;
             for (int i = 0; i < deletionSize; i++) {
                 spaces[i] = ' ';
@@ -436,7 +436,6 @@ static void git_stats_tick(void* data, float seconds) {
                 overloadString[i + 1] = '\0';
             }
             char spaces[7] = "";
-            // TODO: make this rely on if the +/- are enabled or not
             int insertionSize = strlen(ltoa(info->data->added)) + 2;
             for (int i = 0; i < insertionSize; i++) {
                 spaces[i] = ' ';
@@ -474,7 +473,6 @@ static void git_stats_tick(void* data, float seconds) {
         }
         else {
             char spaces[7] = "";
-            // TODO: make this rely on if the +/- are enabled or not
             int insertionSize = strlen(ltoa(info->data->added)) + 2;
             for (int i = 0; i < insertionSize; i++) {
                 spaces[i] = ' ';
