@@ -127,9 +127,13 @@ static void git_stats_get_defaults(obs_data_t* settings) {
     obs_data_set_default_bool(settings, "antialiasing", true);
     obs_data_set_default_bool(settings, "drop_shadow", false);
 
-    // deletion color
+    // deletion opts
     obs_data_set_default_int(settings, "deletion_color1", 0xFF0000FF);
     obs_data_set_default_int(settings, "deletion_color2", 0xFF0000FF);
+    obs_data_set_default_bool(settings, "deletion_symbol", true);
+
+    // insertion opts
+    obs_data_set_default_bool(settings, "add_symbol", true);
 
     // make DejaVu Sans Mono the default because sans serif is not mono
     obs_data_t* font_obj = obs_data_create();
@@ -321,10 +325,20 @@ static void git_stats_tick(void* data, float seconds) {
         }
         if (info->data->trackedPaths == NULL) {
             if (info->data->insertionEnabled) {
-                obs_data_set_string(
-                    info->textSource->context.settings, "text", "\n+0");
-                obs_source_update(
-                    info->textSource, info->textSource->context.settings);
+                if (obs_data_get_bool(
+                        info->gitSource->context.settings,
+                        "insertion_symbol")) {
+                    obs_data_set_string(
+                        info->textSource->context.settings, "text", "\n+0");
+                    obs_source_update(
+                        info->textSource, info->textSource->context.settings);
+                }
+                else {
+                    obs_data_set_string(
+                        info->textSource->context.settings, "text", "\n 0");
+                    obs_source_update(
+                        info->textSource, info->textSource->context.settings);
+                }
             }
             else {
                 obs_data_set_string(
@@ -333,11 +347,23 @@ static void git_stats_tick(void* data, float seconds) {
                     info->textSource, info->textSource->context.settings);
             }
             if (info->data->deletionEnabled) {
-                obs_data_set_string(
-                    info->deletionSource->context.settings, "text", "\n   -0");
-                obs_source_update(
-                    info->deletionSource,
-                    info->deletionSource->context.settings);
+                if (obs_data_get_bool(
+                        info->gitSource->context.settings, "deletion_symbol")) {
+                    obs_data_set_string(
+                        info->deletionSource->context.settings, "text",
+                        "\n   -0");
+                    obs_source_update(
+                        info->deletionSource,
+                        info->deletionSource->context.settings);
+                }
+                else {
+                    obs_data_set_string(
+                        info->deletionSource->context.settings, "text",
+                        "\n    0");
+                    obs_source_update(
+                        info->deletionSource,
+                        info->deletionSource->context.settings);
+                }
             }
             else {
                 obs_data_set_string(
@@ -369,13 +395,27 @@ static void git_stats_tick(void* data, float seconds) {
             }
 
             char outputBuffer[100] = "\0";
-            snprintf(
-                outputBuffer, strlen(overloadString) + strlen(ltoa(value)) + 3,
-                "%s\n+%s", overloadString, ltoa(value));
-            obs_data_set_string(
-                info->textSource->context.settings, "text", outputBuffer);
-            obs_source_update(
-                info->textSource, info->textSource->context.settings);
+            if (obs_data_get_bool(
+                    info->gitSource->context.settings, "insertion_symbol")) {
+                snprintf(
+                    outputBuffer,
+                    strlen(overloadString) + strlen(ltoa(value)) + 3, "%s\n+%s",
+                    overloadString, ltoa(value));
+                obs_data_set_string(
+                    info->textSource->context.settings, "text", outputBuffer);
+                obs_source_update(
+                    info->textSource, info->textSource->context.settings);
+            }
+            else {
+                snprintf(
+                    outputBuffer,
+                    strlen(overloadString) + strlen(ltoa(value)) + 3, "%s\n %s",
+                    overloadString, ltoa(value));
+                obs_data_set_string(
+                    info->textSource->context.settings, "text", outputBuffer);
+                obs_source_update(
+                    info->textSource, info->textSource->context.settings);
+            }
         }
         else {
             char outputBuffer[100] = "\0";
@@ -386,8 +426,6 @@ static void git_stats_tick(void* data, float seconds) {
                 info->textSource, info->textSource->context.settings);
         }
         char outputBuffer[100] = "\0";
-        // strncpy(outputBuffer, "", 1);
-        //  max number of characters is +OVERLOAD_VAL -OVERLOAD_VAL
         if (info->data->deletionEnabled) {
             long value = info->data->deleted;
             int numOverload = value / OVERLOAD_VAL;
@@ -404,16 +442,35 @@ static void git_stats_tick(void* data, float seconds) {
                 spaces[i] = ' ';
                 spaces[i + 1] = '\0';
             }
-            snprintf(
-                outputBuffer,
-                strlen(overloadString) + (strlen(spaces) * 2) +
-                    strlen(ltoa(info->data->deleted)) + 3,
-                "%s%s\n%s-%s", spaces, overloadString, spaces,
-                ltoa(info->data->deleted));
-            obs_data_set_string(
-                info->deletionSource->context.settings, "text", outputBuffer);
-            obs_source_update(
-                info->deletionSource, info->deletionSource->context.settings);
+            if (obs_data_get_bool(
+                    info->gitSource->context.settings, "deletion_symbol")) {
+                snprintf(
+                    outputBuffer,
+                    strlen(overloadString) + (strlen(spaces) * 2) +
+                        strlen(ltoa(info->data->deleted)) + 3,
+                    "%s%s\n%s-%s", spaces, overloadString, spaces,
+                    ltoa(info->data->deleted));
+                obs_data_set_string(
+                    info->deletionSource->context.settings, "text",
+                    outputBuffer);
+                obs_source_update(
+                    info->deletionSource,
+                    info->deletionSource->context.settings);
+            }
+            else {
+                snprintf(
+                    outputBuffer,
+                    strlen(overloadString) + (strlen(spaces) * 2) +
+                        strlen(ltoa(info->data->deleted)) + 3,
+                    "%s%s\n%s %s", spaces, overloadString, spaces,
+                    ltoa(info->data->deleted));
+                obs_data_set_string(
+                    info->deletionSource->context.settings, "text",
+                    outputBuffer);
+                obs_source_update(
+                    info->deletionSource,
+                    info->deletionSource->context.settings);
+            }
         }
         else {
             char spaces[7] = "";
@@ -504,6 +561,7 @@ static obs_properties_t* git_stats_properties(void* unused) {
     obs_properties_remove_by_name(text1_props, "drop_shadow");
     obs_properties_remove_by_name(text1_props, "outline");
     obs_properties_remove_by_name(text1_props, "antialiasing");
+    obs_properties_add_bool(text1_props, "insertion_symbol", "+ Symbol");
     obs_data_set_default_int(
         info->textSource->context.settings, "color1", 0xFF00FF00);
     obs_data_set_default_int(
@@ -517,6 +575,7 @@ static obs_properties_t* git_stats_properties(void* unused) {
     obs_properties_t* text2_props = obs_properties_create();
     obs_properties_add_color_alpha(text2_props, "deletion_color1", "Color1");
     obs_properties_add_color_alpha(text2_props, "deletion_color2", "Color2");
+    obs_properties_add_bool(text2_props, "deletion_symbol", "- Symbol");
 
     obs_properties_add_group(
         props, "deletion_properties", "Deletion Settings", OBS_GROUP_CHECKABLE,

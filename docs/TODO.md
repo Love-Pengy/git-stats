@@ -162,12 +162,15 @@
 - ~~do not allow for duplicate repos~~
   - ~~check in the user specified strings that it doesn't already exist~~
   - ~~check when creating the directory thingy that it doesn't already exist~~
+- ~~allow the user to get rid of the + and - signs~~
+  - ~~account for spacing with this~~
 
 - figure out why last number of deletions flickers
   - cannot reproduce well
 
-- allow the user to get rid of the + and - signs
-  - account for spacing with this
+- make counter not reset to 0 0 after updating props
+- make the colors apply on startup
+  - at the current moment when you boot up obs it uses defaults
 - figure out a way to do popups or something else for the user so they know when errors have happened
   - checkoiut this: <https://docs.obsproject.com/reference-properties#c.obs_property_text_set_info_type>
 - change insertion source name to insertion source (current it is called text source)
