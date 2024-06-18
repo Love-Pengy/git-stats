@@ -169,6 +169,7 @@
   - ~~at the current moment when you boot up obs it uses defaults~~
 - ~~make default for + symbol ticked~~
 - ~~figure out why on startup only the insertion is visible~~
+- ~~fix seg fault on destroy~~
 
 - figure out why last number of deletions flickers
   - cannot reproduce well
@@ -183,6 +184,8 @@
 ## Optimistic
 
 - mess around with p_threads
+- refactor to make things more concise
+- debug the need to run with -O0
 
 ## DEBUG NOTES
 

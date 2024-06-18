@@ -92,13 +92,20 @@ static void git_stats_destroy(void* data) {
 
     obs_source_remove_active_child(info->gitSource, info->textSource);
     obs_source_remove_active_child(info->gitSource, info->deletionSource);
+
+    obs_source_remove(info->textSource);
+    obs_source_release(info->textSource);
     info->textSource = NULL;
+
+    obs_source_remove(info->deletionSource);
+    obs_source_release(info->deletionSource);
     info->deletionSource = NULL;
 
     bfree(info->data);
     info->data = NULL;
 
     bfree(info);
+    info = NULL;
 
     obs_log(LOG_INFO, "Source Destroyed");
 }
