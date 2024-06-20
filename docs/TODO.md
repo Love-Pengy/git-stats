@@ -6,7 +6,7 @@
 - [TIMELINE](#timeline)
 - [TODO](#todo)
 - [Optimistic](#optimistic)
-- [NOTES](#notes)
+- [DEBUG NOTES](#debug-notes)
   - [Psuedo for updating the deletion source](#psuedo-for-updating-the-deletion-source)
   - [Psuedo For Dirs](#psuedo-for-dirs)
 <!--toc:end-->
@@ -16,14 +16,14 @@
 - ~~specify multiple repos~~
 - ~~set refresh rate~~
 - ~~untracked files~~
-- plus lines && minus lines
-  - enable
+- ~~plus lines && minus lines~~
+  - ~~enable~~
   - ~~change font~~
-  - font size
+  - ~~font size~~
   - ~~color~~
-  - number only
-- text will always be centered
-  - or this could also be a more creative way like every 1k put an indicator somewhere
+  - ~~number only~~
+- ~~text will always be centered~~
+  - ~~or this could also be a more creative way like every 1k put an indicator somewhere~~
 - ability to convey to the user useful error outputs
   - for invalid paths coming from the config
 
@@ -40,9 +40,12 @@
 
 ## ASSUMPTIONS
 
-- when grabbing input from the obs ui/user the output of that will be an array of strings
-- if we have the string "insertions" within the output of git diff then we have a full valid output
-- we are expecting the end directory to have the / at the end
+- ~~when grabbing input from the obs ui/user the output of that will be an array of strings~~
+  - this assumption was wrong! It's one big string that can be delimited by newline characters~
+- ~~if we have the string "insertions" within the output of git diff then we have a full valid output~~
+  - this assumption was also wrong! for git diff you can have just deletions, just insertions, or both. In addition to this the word also changes depending on if its plural or not!~
+- ~~we are expecting the end directory to have the / at the end~~
+  - not a necessary assumption as it can just be added at the end~
 - no one in their right mind would have either 4 mil insertions or deletions
 
 ## TIMELINE
@@ -170,12 +173,12 @@
 - ~~make default for + symbol ticked~~
 - ~~figure out why on startup only the insertion is visible~~
 - ~~fix seg fault on destroy~~
+- ~~change insertion source name to insertion source (current it is called text source)~~
+  - ~~change the insertion group name to insertion_properties (currently it is text_properties)~~
 
 - figure out why last number of deletions flickers
   - cannot reproduce well
 
-- change insertion source name to insertion source (current it is called text source)
-  - change the insertion group name to insertion_properties (currently it is text_properties)
 - figure out a way to do popups or something else for the user so they know when errors have happened
   - checkoiut this: <https://docs.obsproject.com/reference-properties#c.obs_property_text_set_info_type>
 - figure out how to use gh actions to build
