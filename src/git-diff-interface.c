@@ -413,3 +413,12 @@ void addGitRepoDir(struct gitData* data, char* repoDirPath) {
         }
     }
 }
+
+char* checkInvalidRepos(char** paths, int numPaths) {
+    for (int i = 0; i < numPaths; i++) {
+        if (!checkPath(paths[i])) {
+            return (paths[i]);
+        }
+    }
+    return (NULL);
+}

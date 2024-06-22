@@ -179,8 +179,13 @@
 - figure out why last number of deletions flickers
   - cannot reproduce well
 
-- figure out a way to do popups or something else for the user so they know when errors have happened
-  - checkoiut this: <https://docs.obsproject.com/reference-properties#c.obs_property_text_set_info_type>
+- ~~figure out a way to do popups or something else for the user so they know when errors have happened~~
+  - ~~checkoiut this: <https://docs.obsproject.com/reference-properties#c.obs_property_text_set_info_type>~~
+    - continue using the callback, but see if it doesn't reset cursor back to beginning if you pass in a different group to the setter for the callback
+    - ~~still need to get the error message to show up~~
+      ~~- oh yeah and also remove the testing stuff for hte callback~~
+  - ~~current idea is to use the info string type for the properties, but need to figure out how to update the property~~
+  - tell user its actually an error (prepend INVALID: to the error string)
 - figure out how to use gh actions to build
 - test the build on a different env (prolly arch peecee)
 

@@ -17,6 +17,8 @@ static bool testMode = false;
 
 static bool INIT_RUN = true;
 
+#define INVAL_TIME_THRESH 10
+
 // LOG_ERROR: for errors that don't require the program to exit
 // LOG_WARNING: when error occurs and is recoverable
 // LOG_INFO: info for whats going on
@@ -42,6 +44,9 @@ struct gitStatsInfo {
     // time passed between the updates
     float time_passed;
 
+    // time passed between prior invalid check
+    float invalid_time_passed;
+
     // the information that we get from our git stats thingy madonker
     struct gitData* data;
 };
@@ -55,6 +60,7 @@ static const char* git_stats_name(void* unused) {
 static void* git_stats_create(obs_data_t* settings, obs_source_t* source) {
     struct gitStatsInfo* info = bzalloc(sizeof(struct gitStatsInfo));
     info->time_passed = 0;
+    info->invalid_time_passed = 0;
     // the source itself
     info->gitSource = source;
 
@@ -157,6 +163,8 @@ static void git_stats_get_defaults(obs_data_t* settings) {
     // group settings
     obs_data_set_default_bool(settings, "text_properties", true);
     obs_data_set_default_bool(settings, "deletion_properties", true);
+
+    obs_data_set_default_bool(settings, "repo_err_msg", false);
 }
 
 // takes string and delimits it by newline chars
@@ -297,6 +305,7 @@ static void git_stats_tick(void* data, float seconds) {
     }
 
     info->time_passed += seconds;
+    info->invalid_time_passed += seconds;
     if (info->time_passed > info->data->delayAmount || INIT_RUN) {
         INIT_RUN |= 1;
         info->time_passed = 0;
@@ -522,6 +531,39 @@ static bool toggleTestCallback(
     return (true);
 }
 
+static bool update_error_callback(
+    void* data, obs_properties_t* props, obs_property_t* property,
+    obs_data_t* settings) {
+    UNUSED_PARAMETER(props);
+    UNUSED_PARAMETER(property);
+    UNUSED_PARAMETER(settings);
+    struct gitStatsInfo* info = data;
+    if (info->invalid_time_passed >= INVAL_TIME_THRESH) {
+        info->invalid_time_passed = 0;
+        char* invalidRepoHold = NULL;
+        if ((invalidRepoHold = checkInvalidRepos(
+                 info->data->trackedPaths, info->data->numTrackedFiles))) {
+            obs_data_set_string(
+                info->gitSource->context.settings, "repo_err_msg",
+                invalidRepoHold);
+            obs_property_set_visible(
+                obs_properties_get(
+                    obs_source_properties(info->gitSource), "repo_err_msg"),
+                true);
+        }
+        else {
+            obs_data_set_string(
+                info->gitSource->context.settings, "repo_err_msg", "");
+            obs_property_set_visible(
+                obs_properties_get(
+                    obs_source_properties(info->gitSource), "repo_err_msg"),
+                false);
+        }
+        return (true);
+    }
+    return (false);
+}
+
 // what autogenerates the UI that I can get user data from
 static obs_properties_t* git_stats_properties(void* unused) {
     struct gitStatsInfo* info = unused;
@@ -534,7 +576,7 @@ static obs_properties_t* git_stats_properties(void* unused) {
         repo_props, "repoDir", "Directory Holding Repositories",
         OBS_PATH_DIRECTORY, NULL, NULL);
 
-    obs_properties_add_text(
+    obs_property_t* repoProp = obs_properties_add_text(
         repo_props, "repos", "Repositiories", OBS_TEXT_MULTILINE);
 
     obs_properties_add_int(
@@ -549,6 +591,10 @@ static obs_properties_t* git_stats_properties(void* unused) {
     obs_properties_add_group(
         props, "repo_properties", "Repository Settings", OBS_GROUP_NORMAL,
         repo_props);
+
+    obs_property_t* err_msg =
+        obs_properties_add_text(props, "repo_err_msg", "", OBS_TEXT_INFO);
+    obs_property_text_set_info_type(err_msg, OBS_TEXT_INFO_ERROR);
 
     ///////////////
 
@@ -602,6 +648,7 @@ static obs_properties_t* git_stats_properties(void* unused) {
         props, "deletion_properties", "Deletion Settings", OBS_GROUP_CHECKABLE,
         text2_props);
 
+    obs_property_set_modified_callback2(repoProp, update_error_callback, info);
     return props;
 }
 
