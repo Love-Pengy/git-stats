@@ -586,7 +586,7 @@ static obs_properties_t* git_stats_properties(void* unused) {
         repo_props, "untracked_files", "Account For Untracked Files");
 
     obs_properties_add_button(
-        repo_props, "test_button", "Toggle Text", toggleTestCallback);
+        repo_props, "test_button", "Test Max Size", toggleTestCallback);
 
     obs_properties_add_group(
         props, "repo_properties", "Repository Settings", OBS_GROUP_NORMAL,
