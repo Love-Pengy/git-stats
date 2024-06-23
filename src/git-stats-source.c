@@ -161,7 +161,7 @@ static void git_stats_get_defaults(obs_data_t* settings) {
     obs_data_set_default_obj(settings, "font", font_obj);
 
     // group settings
-    obs_data_set_default_bool(settings, "text_properties", true);
+    obs_data_set_default_bool(settings, "insertion_properties", true);
     obs_data_set_default_bool(settings, "deletion_properties", true);
 }
 
