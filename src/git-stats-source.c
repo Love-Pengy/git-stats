@@ -223,12 +223,6 @@ static void git_stats_update(void* data, obs_data_t* settings) {
         info->deletionSource->context.settings, "drop_shadow",
         obs_data_get_bool(settings, "drop_shadow"));
 
-    char* allRepos = malloc(
-        sizeof(char) * (strlen(obs_data_get_string(settings, "repos")) + 1));
-    allRepos[0] = '\0';
-
-    strcpy(allRepos, obs_data_get_string(settings, "repos"));
-
     if (!obs_data_get_bool(settings, "insertion_properties")) {
         info->data->insertionEnabled = false;
     }
@@ -243,7 +237,10 @@ static void git_stats_update(void* data, obs_data_t* settings) {
         info->data->deletionEnabled = true;
     }
 
-    if ((allRepos == NULL || !strcmp(allRepos, "")) &&
+    obs_data_array_t* dirArray =
+        obs_data_get_array(info->gitSource->context.settings, "test_edit_list");
+
+    if (!obs_data_array_count(dirArray) &&
         (obs_data_get_string(settings, "repoDir") == NULL ||
          !strcmp(obs_data_get_string(settings, "repoDir"), ""))) {
         obs_data_set_string(
@@ -257,11 +254,24 @@ static void git_stats_update(void* data, obs_data_t* settings) {
         info->data->trackedPaths = NULL;
         info->data->numTrackedFiles = 0;
     }
-
     else {
-        int amtHold = 0;
-        info->data->trackedPaths = segmentString(allRepos, &amtHold);
-        info->data->numTrackedFiles = amtHold;
+        if (info->data->trackedPaths) {
+            for (int i = 0; i < info->data->numTrackedFiles; i++) {
+                free(info->data->trackedPaths[i]);
+            }
+        }
+        else {
+            info->data->trackedPaths = malloc(sizeof(char*) * MAXNUMPATHS);
+        }
+        info->data->numTrackedFiles = 0;
+        for (size_t i = 0; i < obs_data_array_count(dirArray); i++) {
+            const char* currVal =
+                obs_data_get_string(obs_data_array_item(dirArray, i), "value");
+            info->data->trackedPaths[i] =
+                malloc(sizeof(char) * strlen(currVal) + 1);
+            strncpy(info->data->trackedPaths[i], currVal, strlen(currVal) + 1);
+            info->data->numTrackedFiles++;
+        }
     }
 
     if (strcmp(obs_data_get_string(settings, "repoDir"), "") &&
@@ -578,6 +588,9 @@ static obs_properties_t* git_stats_properties(void* unused) {
 
     obs_property_t* repoProp = obs_properties_add_text(
         repo_props, "repos", "Repositiories", OBS_TEXT_MULTILINE);
+    obs_properties_add_editable_list(
+        repo_props, "test_edit_list", "edit_list", OBS_EDITABLE_LIST_TYPE_FILES,
+        NULL, NULL);
 
     obs_properties_add_int(
         repo_props, "delay", "Delay Between Updates", 0, INT_MAX, 1);

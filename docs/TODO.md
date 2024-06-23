@@ -175,19 +175,28 @@
 - ~~fix seg fault on destroy~~
 - ~~change insertion source name to insertion source (current it is called text source)~~
   - ~~change the insertion group name to insertion_properties (currently it is text_properties)~~
-
-- figure out why last number of deletions flickers
-  - cannot reproduce well
-
 - ~~figure out a way to do popups or something else for the user so they know when errors have happened~~
   - ~~checkoiut this: <https://docs.obsproject.com/reference-properties#c.obs_property_text_set_info_type>~~
     - continue using the callback, but see if it doesn't reset cursor back to beginning if you pass in a different group to the setter for the callback
     - ~~still need to get the error message to show up~~
-      ~~- oh yeah and also remove the testing stuff for hte callback~~
+    ~~- oh yeah and also remove the testing stuff for hte callback~~
   - ~~current idea is to use the info string type for the properties, but need to figure out how to update the property~~
   - tell user its actually an error (prepend INVALID: to the error string)
+  - **MAJOR CHANGE OF PLANS:** going to attemp to use an editable list instead so that erorrs theoretically don't need to be passed to the user
+- ~~figure out how to the editable list works and how to implement that into the current solution~~
+  - ~~figure out how to add the property~~
+  - ~~figure out how to get the strings from the property~~
+  - ~~change up the update function depending on how the data is now formatted~~
+
+- figure out why last number of deletions flickers
+  - cannot reproduce well
 - figure out how to use gh actions to build
 - test the build on a different env (prolly arch peecee)
+
+## Formatting TODO
+
+- pick either camel case or snake case
+  - camel case is personally preffered but it is probably easier to do snake since thats what all of the obs functions are in
 
 ## Optimistic
 
