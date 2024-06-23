@@ -163,39 +163,6 @@ static void git_stats_get_defaults(obs_data_t* settings) {
     // group settings
     obs_data_set_default_bool(settings, "text_properties", true);
     obs_data_set_default_bool(settings, "deletion_properties", true);
-
-    obs_data_set_default_bool(settings, "repo_err_msg", false);
-}
-
-// takes string and delimits it by newline chars
-char** segmentString(char* string, int* numPaths) {
-    if (string == NULL) {
-        return (NULL);
-        *numPaths = 0;
-    }
-    char* tmpString = malloc(sizeof(char) * (strlen(string) + 1));
-    tmpString[0] = '\0';
-    strcpy(tmpString, string);
-    char* buffer;
-    char** paths = malloc(sizeof(char*) * MAXNUMPATHS);
-    buffer = strtok(tmpString, "\n");
-    int count = 0;
-    while (buffer != NULL) {
-        if (!checkRepoExists(paths, count, buffer)) {
-            paths[count] = malloc(sizeof(char) * (strlen(buffer) + 1));
-            strcpy(paths[count], buffer);
-            count++;
-            buffer = strtok(NULL, "\n");
-            continue;
-        }
-        buffer = strtok(NULL, "\n");
-    }
-    for (int i = count; i < MAXNUMPATHS; i++) {
-        paths[i] = NULL;
-    }
-
-    *numPaths = count;
-    return (paths);
 }
 
 // this runs when you update settings
@@ -238,7 +205,7 @@ static void git_stats_update(void* data, obs_data_t* settings) {
     }
 
     obs_data_array_t* dirArray =
-        obs_data_get_array(info->gitSource->context.settings, "test_edit_list");
+        obs_data_get_array(info->gitSource->context.settings, "single_repos");
 
     if (!obs_data_array_count(dirArray) &&
         (obs_data_get_string(settings, "repoDir") == NULL ||
@@ -541,39 +508,6 @@ static bool toggleTestCallback(
     return (true);
 }
 
-static bool update_error_callback(
-    void* data, obs_properties_t* props, obs_property_t* property,
-    obs_data_t* settings) {
-    UNUSED_PARAMETER(props);
-    UNUSED_PARAMETER(property);
-    UNUSED_PARAMETER(settings);
-    struct gitStatsInfo* info = data;
-    if (info->invalid_time_passed >= INVAL_TIME_THRESH) {
-        info->invalid_time_passed = 0;
-        char* invalidRepoHold = NULL;
-        if ((invalidRepoHold = checkInvalidRepos(
-                 info->data->trackedPaths, info->data->numTrackedFiles))) {
-            obs_data_set_string(
-                info->gitSource->context.settings, "repo_err_msg",
-                invalidRepoHold);
-            obs_property_set_visible(
-                obs_properties_get(
-                    obs_source_properties(info->gitSource), "repo_err_msg"),
-                true);
-        }
-        else {
-            obs_data_set_string(
-                info->gitSource->context.settings, "repo_err_msg", "");
-            obs_property_set_visible(
-                obs_properties_get(
-                    obs_source_properties(info->gitSource), "repo_err_msg"),
-                false);
-        }
-        return (true);
-    }
-    return (false);
-}
-
 // what autogenerates the UI that I can get user data from
 static obs_properties_t* git_stats_properties(void* unused) {
     struct gitStatsInfo* info = unused;
@@ -583,14 +517,12 @@ static obs_properties_t* git_stats_properties(void* unused) {
     obs_properties_t* repo_props = obs_properties_create();
 
     obs_properties_add_path(
-        repo_props, "repoDir", "Directory Holding Repositories",
+        repo_props, "Repository Directory", "Directory Holding Repositories",
         OBS_PATH_DIRECTORY, NULL, NULL);
 
-    obs_property_t* repoProp = obs_properties_add_text(
-        repo_props, "repos", "Repositiories", OBS_TEXT_MULTILINE);
     obs_properties_add_editable_list(
-        repo_props, "test_edit_list", "edit_list", OBS_EDITABLE_LIST_TYPE_FILES,
-        NULL, NULL);
+        repo_props, "single_repos", "Single Repositories",
+        OBS_EDITABLE_LIST_TYPE_FILES, NULL, NULL);
 
     obs_properties_add_int(
         repo_props, "delay", "Delay Between Updates", 0, INT_MAX, 1);
@@ -604,10 +536,6 @@ static obs_properties_t* git_stats_properties(void* unused) {
     obs_properties_add_group(
         props, "repo_properties", "Repository Settings", OBS_GROUP_NORMAL,
         repo_props);
-
-    obs_property_t* err_msg =
-        obs_properties_add_text(props, "repo_err_msg", "", OBS_TEXT_INFO);
-    obs_property_text_set_info_type(err_msg, OBS_TEXT_INFO_ERROR);
 
     ///////////////
 
@@ -647,8 +575,8 @@ static obs_properties_t* git_stats_properties(void* unused) {
     obs_data_set_default_int(
         info->insertionSource->context.settings, "color1", 0xFF00FF00);
     obs_properties_add_group(
-        props, "insertion_properties", "Text Settings", OBS_GROUP_CHECKABLE,
-        text1_props);
+        props, "insertion_properties", "Insertion Settings",
+        OBS_GROUP_CHECKABLE, text1_props);
 
     //////////////
 
@@ -661,7 +589,6 @@ static obs_properties_t* git_stats_properties(void* unused) {
         props, "deletion_properties", "Deletion Settings", OBS_GROUP_CHECKABLE,
         text2_props);
 
-    obs_property_set_modified_callback2(repoProp, update_error_callback, info);
     return props;
 }
 
