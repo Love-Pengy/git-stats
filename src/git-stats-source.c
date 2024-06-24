@@ -208,8 +208,9 @@ static void git_stats_update(void* data, obs_data_t* settings) {
         obs_data_get_array(info->gitSource->context.settings, "single_repos");
 
     if (!obs_data_array_count(dirArray) &&
-        (obs_data_get_string(settings, "repoDir") == NULL ||
-         !strcmp(obs_data_get_string(settings, "repoDir"), ""))) {
+        (obs_data_get_string(settings, "repositories_directory") == NULL ||
+         !strcmp(
+             obs_data_get_string(settings, "repositories_directory"), ""))) {
         obs_data_set_string(
             info->insertionSource->context.settings, "text", "\n+0");
         obs_data_set_string(
@@ -241,10 +242,11 @@ static void git_stats_update(void* data, obs_data_t* settings) {
         }
     }
 
-    if (strcmp(obs_data_get_string(settings, "repoDir"), "") &&
-        (obs_data_get_string(settings, "repoDir") != NULL)) {
+    if (strcmp(obs_data_get_string(settings, "repositories_directory"), "") &&
+        (obs_data_get_string(settings, "repositories_directory") != NULL)) {
         addGitRepoDir(
-            info->data, (char*)obs_data_get_string(settings, "repoDir"));
+            info->data,
+            (char*)obs_data_get_string(settings, "repositories_directory"));
     }
 
     // do not have to do anything because it handles edge cases for me
@@ -517,7 +519,7 @@ static obs_properties_t* git_stats_properties(void* unused) {
     obs_properties_t* repo_props = obs_properties_create();
 
     obs_properties_add_path(
-        repo_props, "Repository Directory", "Directory Holding Repositories",
+        repo_props, "repositories_directory", "Directory Holding Repositories",
         OBS_PATH_DIRECTORY, NULL, NULL);
 
     obs_properties_add_editable_list(
