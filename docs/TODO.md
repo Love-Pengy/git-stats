@@ -187,9 +187,11 @@
   - ~~figure out how to add the property~~
   - ~~figure out how to get the strings from the property~~
   - ~~change up the update function depending on how the data is now formatted~~
+- ~~figure out why last number of deletions flickers~~
+  - cannot reproduce at all come back to this if its still an issue
+- ~~don't allow overflow indicators to go over 4~~
+- ~~fix inconsistent spacing when using different modes/settings~~
 
-- figure out why last number of deletions flickers
-  - cannot reproduce well
 - figure out how to use gh actions to build
 - test the build on a different env (prolly arch peecee)
 
@@ -203,6 +205,7 @@
 - mess around with p_threads
 - refactor to make things more concise
 - debug the need to run with -O0
+- add ability to change overflow icon
 
 ## DEBUG NOTES
 
