@@ -197,14 +197,15 @@
 
 ## Formatting TODO
 
-- pick either camel case or snake case
-  - camel case is personally preffered but it is probably easier to do snake since thats what all of the obs functions are in
+- ~~pick either camel case or snake case~~
+  - ~~camel case is personally preffered but it is probably easier to do snake since thats what all of the obs functions are in~~
 
 ## Optimistic
 
+~~- debug the need to run with -O0~~
+
 - mess around with p_threads
 - refactor to make things more concise
-- debug the need to run with -O0
 - add ability to change overflow icon
 
 ## DEBUG NOTES

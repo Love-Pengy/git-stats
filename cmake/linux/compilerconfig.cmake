@@ -39,8 +39,8 @@ set(_obs_gcc_c_options
     -Wunused-value
     -Wunused-variable
     -Wvla
-    -I/usr/include/freetype2
-    -O0
+    #-g
+    #-O0
 )
 
 # gcc options for C++

@@ -51,17 +51,15 @@ struct gitStatsInfo {
 
 static const char* git_stats_name(void* unused) {
     UNUSED_PARAMETER(unused);
-    return (obs_module_text("GitStats"));
+    return (obs_module_text("Git Stats"));
 }
 
-// create data for the source
+// initializes the source
 static void* git_stats_create(obs_data_t* settings, obs_source_t* source) {
     struct gitStatsInfo* info = bzalloc(sizeof(struct gitStatsInfo));
     info->time_passed = 0;
-    // the source itself
     info->gitSource = source;
 
-    // id for the text source
     const char* text_source_id = "text_ft2_source_v2";
     info->data = bzalloc(sizeof(struct gitData));
     info->data->trackedPaths = NULL;
@@ -72,7 +70,6 @@ static void* git_stats_create(obs_data_t* settings, obs_source_t* source) {
     info->data->insertionEnabled = false;
     info->data->deletionEnabled = false;
 
-    // the text source
     info->insertionSource =
         obs_source_create(text_source_id, "insertionSource", settings, NULL);
     obs_source_add_active_child(info->gitSource, info->insertionSource);
@@ -82,9 +79,9 @@ static void* git_stats_create(obs_data_t* settings, obs_source_t* source) {
 
     // ensure that defaults are set AFTER the creation has completed
     git_stats_get_defaults(settings);
-
     git_stats_update(info, settings);
-    obs_log(LOG_INFO, "Source Created");
+
+    obs_log(LOG_INFO, "Source Initialized");
 
     return (info);
 }
@@ -129,14 +126,16 @@ static uint32_t git_stats_height(void* data) {
     return (obs_source_get_height(info->deletionSource));
 }
 
+// Settings that are loaded when the default button is hit in the properties
+// window
 static void git_stats_get_defaults(obs_data_t* settings) {
     // repo settings
     obs_data_set_default_int(settings, "delay", 5);
     obs_data_set_default_bool(settings, "untracked_files", false);
 
     // shared settings
-    obs_data_set_default_bool(settings, "outline", false);
     obs_data_set_default_bool(settings, "antialiasing", true);
+    obs_data_set_default_bool(settings, "outline", false);
     obs_data_set_default_bool(settings, "drop_shadow", false);
 
     // deletion opts
@@ -145,9 +144,9 @@ static void git_stats_get_defaults(obs_data_t* settings) {
     obs_data_set_default_bool(settings, "deletion_symbol", true);
 
     // insertion opts
-    obs_data_set_default_bool(settings, "insertion_symbol", true);
     obs_data_set_default_int(settings, "color1", 0xFF00FF00);
     obs_data_set_default_int(settings, "color2", 0xFF00FF00);
+    obs_data_set_default_bool(settings, "insertion_symbol", true);
 
     // make DejaVu Sans Mono the default because sans serif is not mono
     obs_data_t* font_obj = obs_data_create();
@@ -162,12 +161,12 @@ static void git_stats_get_defaults(obs_data_t* settings) {
     obs_data_set_default_bool(settings, "deletion_properties", true);
 }
 
-// this runs when you update settings
+// update the settings data in our source
 static void git_stats_update(void* data, obs_data_t* settings) {
     struct gitStatsInfo* info = data;
     UNUSED_PARAMETER(data);
 
-    // copy settings from dummy props to the deletion source
+    // copy settings from dummy property to the deletion text source
     obs_data_set_obj(
         info->deletionSource->context.settings, "font",
         obs_data_get_obj(settings, "font"));
@@ -232,8 +231,16 @@ static void git_stats_update(void* data, obs_data_t* settings) {
         for (size_t i = 0; i < obs_data_array_count(dirArray); i++) {
             const char* currVal =
                 obs_data_get_string(obs_data_array_item(dirArray, i), "value");
+            errno = 0;
             info->data->trackedPaths[i] =
                 malloc(sizeof(char) * strlen(currVal) + 1);
+            if (errno) {
+                strerror(errno);
+                obs_log(LOG_ERROR, "Malloc Failed");
+                info->data->trackedPaths[i] = NULL;
+                info->data->numTrackedFiles++;
+                continue;
+            }
             strncpy(info->data->trackedPaths[i], currVal, strlen(currVal) + 1);
             info->data->numTrackedFiles++;
         }
@@ -246,10 +253,7 @@ static void git_stats_update(void* data, obs_data_t* settings) {
             (char*)obs_data_get_string(settings, "repositories_directory"));
     }
 
-    // do not have to do anything because it handles edge cases for me
-    // (based on max and min) and doesn't allow empty input
     info->data->delayAmount = obs_data_get_int(settings, "delay");
-
     info->data->added = 0;
     info->data->deleted = 0;
 
@@ -267,13 +271,13 @@ static void git_stats_update(void* data, obs_data_t* settings) {
 // render out the source
 static void git_stats_render(void* data, gs_effect_t* effect) {
     struct gitStatsInfo* info = data;
-    // obs_source_video_render(info->deletionSource);
     obs_source_video_render(info->insertionSource);
     obs_source_video_render(info->deletionSource);
     UNUSED_PARAMETER(effect);
 }
 
-// updates the data (called each frame with the time elapsed passed in)
+// update relevant real time data for the source (called each frame with the
+// time elapsed passed in)
 static void git_stats_tick(void* data, float seconds) {
     struct gitStatsInfo* info = data;
     if (!obs_source_showing(info->gitSource)) {
@@ -300,8 +304,6 @@ static void git_stats_tick(void* data, float seconds) {
             obs_source_update(
                 info->insertionSource, info->insertionSource->context.settings);
 
-            ////////////////////
-
             char spaces[7] = "";
             int deletionSize = strlen(ltoa(OVERLOAD_VAL)) + 2;
             for (int i = 0; i < deletionSize; i++) {
@@ -318,7 +320,6 @@ static void git_stats_tick(void* data, float seconds) {
                 info->deletionSource->context.settings, "text", buffer);
             obs_source_update(
                 info->deletionSource, info->deletionSource->context.settings);
-
             return;
         }
         if (info->data->trackedPaths == NULL) {
@@ -387,7 +388,6 @@ static void git_stats_tick(void* data, float seconds) {
             info->data->added += getLinesAddedHM(&(info->data->untracked));
         }
         if (info->data->insertionEnabled) {
-            // create overload string
             long value = info->data->added;
             int numOverload = value / OVERLOAD_VAL;
             numOverload > MAX_OVERLOAD ? numOverload = MAX_OVERLOAD
@@ -500,7 +500,7 @@ static void git_stats_tick(void* data, float seconds) {
     }
 }
 
-// Toggle test setting
+// callback for the test_button property
 static bool toggleTestCallback(
     obs_properties_t* properties, obs_property_t* buttonProps, void* data) {
     UNUSED_PARAMETER(properties);
@@ -510,7 +510,7 @@ static bool toggleTestCallback(
     return (true);
 }
 
-// what autogenerates the UI that I can get user data from
+// properties that are generated in the ui of the source
 static obs_properties_t* git_stats_properties(void* unused) {
     struct gitStatsInfo* info = unused;
     UNUSED_PARAMETER(unused);
