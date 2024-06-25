@@ -24,6 +24,7 @@ bool checkInsertions(char* input) {
     char* tmpString = malloc(sizeof(char) * strlen(input) + 1);
     if (errno) {
         perror("git-diff-interface(checkInsertions)");
+        obs_log(LOG_ERROR, "CheckInsertions: %s", strerror(errno));
         return (false);
     }
     strncpy(tmpString, input, strlen(input) + 1);
@@ -33,6 +34,7 @@ bool checkInsertions(char* input) {
         tmpString = malloc(sizeof(char) * strlen(input) + 1);
         if (errno) {
             perror("git-diff-interface(checkInsertions)");
+            obs_log(LOG_ERROR, "CheckInsertions: %s", strerror(errno));
             return (false);
         }
         tmpString[0] = '\0';
@@ -55,20 +57,18 @@ bool checkDeletions(char* input) {
     char* tmpString = malloc(sizeof(char) * strlen(input) + 1);
     if (errno) {
         perror("git-diff-interface(checkDeletions)");
+        obs_log(LOG_ERROR, "CheckDeletions: %s", strerror(errno));
         return (false);
     }
     tmpString[0] = '\0';
     strncpy(tmpString, input, strlen(input) + 1);
-    if (tmpString == NULL) {
-        printf("TMPSTRING NULL IN CHECKDELETIONS\n");
-        return (false);
-    }
     char* checker = strtok(tmpString, "deletions");
     if (checker == NULL) {
         errno = 0;
         tmpString = malloc(sizeof(char) * strlen(input) + 1);
         if (errno) {
             perror("git-diff-interface(checkInsertions)");
+            obs_log(LOG_ERROR, "CheckDeletions: %s", strerror(errno));
             return (false);
         }
         tmpString[0] = '\0';
@@ -95,6 +95,7 @@ long getInsertionNumber(char* diffString) {
     char* diffStringCopy = malloc(sizeof(char) * (strlen(diffString) + 1));
     if (errno) {
         perror("git-diff-interface(getInsertionNumber)");
+        obs_log(LOG_ERROR, "GetInsertionNumber: %s", strerror(errno));
         return (0);
     }
     diffStringCopy[0] = '\0';
@@ -130,6 +131,7 @@ long getDeletionNumber(char* diffString) {
     char* diffStringCopy = malloc(sizeof(char) * (strlen(diffString) + 1));
     if (errno) {
         perror("git-diff-interface(getDeletionNumber)");
+        obs_log(LOG_ERROR, "GetInsertionNumber: %s", strerror(errno));
         return (0);
     }
     diffStringCopy[0] = '\0';
@@ -169,6 +171,7 @@ void createUntrackedFilesHM(struct gitData* data) {
         char* command = malloc(sizeof(char) * commandLength);
         if (errno) {
             perror("git-diff-interface(createUntrackedFilesHM)");
+            obs_log(LOG_WARNING, "CreateUntrackedFiles: %s", strerror(errno));
             continue;
         }
         command[0] = '\0';
@@ -212,6 +215,7 @@ char* formatEndPathChar(char* formatee) {
     char* output = malloc(sizeof(char) * strlen(formatee) + 3);
     if (errno) {
         perror("git-diff-interface(formatEndPathChar)");
+        obs_log(LOG_ERROR, "formatEndPathChar: %s", strerror(errno));
         return (formatee);
     }
     output[0] = '\0';
@@ -234,6 +238,7 @@ void expandHomeDir(char** input) {
     (*input) = malloc(sizeof(char) * (strlen((*input)) + strlen(expanded) + 1));
     if (errno) {
         perror("git-diff-interface(expandHomeDir)");
+        obs_log(LOG_ERROR, "ExpandHomeDir: %s", strerror(errno));
         return;
     }
     (*input)[0] = '\0';
@@ -252,6 +257,7 @@ bool checkPath(char* path) {
     buffer = malloc(sizeof(char) * (strlen(path) + 8));
     if (errno) {
         perror("git-diff-interface(checkPath)");
+        obs_log(LOG_ERROR, "CheckPath: %s", strerror(errno));
         return (false);
     }
     buffer[0] = '\0';
@@ -268,6 +274,7 @@ bool checkPath(char* path) {
     dptr = opendir(buffer);
     if (errno) {
         perror("git-diff-interface(checkPath)");
+        obs_log(LOG_ERROR, "CheckPath: %s: %s", strerror(errno), buffer);
         return (false);
     }
     closedir(dptr);
@@ -296,6 +303,7 @@ void updateTrackedFiles(struct gitData* data) {
         char* command = malloc(sizeof(char) * commandLength);
         if (errno) {
             perror("git-diff-interface(updateTrackedFiles)");
+            obs_log(LOG_ERROR, "UpdateTrackedFiles: %s", strerror(errno));
             continue;
         }
         command[0] = '\0';
@@ -335,6 +343,7 @@ void addGitRepoDir(struct gitData* data, char* repoDirPath) {
     buffer = malloc(sizeof(char) * (strlen(repoDirPath) + 8));
     if (errno) {
         perror("git-diff-interface(addGitRepoDir)");
+        obs_log(LOG_ERROR, "AddGitRepoDir: %s", strerror(errno));
         return;
     }
     buffer[0] = '\0';
@@ -350,6 +359,7 @@ void addGitRepoDir(struct gitData* data, char* repoDirPath) {
     dptr = opendir(buffer);
     if (errno) {
         perror("git-diff-interface(addGitRepoDir)");
+        obs_log(LOG_ERROR, "AddGitRepoDir: %s", strerror(errno));
         return;
     }
     closedir(dptr);
@@ -358,6 +368,7 @@ void addGitRepoDir(struct gitData* data, char* repoDirPath) {
     DIR* dp = opendir(repoDirPath);
     if (errno) {
         perror("git-diff-interface(addGitRepoDir)");
+        obs_log(LOG_ERROR, "AddGitRepoDir: %s", strerror(errno));
         return;
     }
     errno = 0;
@@ -374,6 +385,7 @@ void addGitRepoDir(struct gitData* data, char* repoDirPath) {
             sizeof(char) *
             (strlen(dirStruct->d_name) + strlen(repoDirPath) + 2));
         if (errno) {
+            obs_log(LOG_ERROR, "AddGitRepoDir: %s", strerror(errno));
             perror("git-diff-interface(addGitRepoDir)");
             return;
         }
@@ -386,6 +398,7 @@ void addGitRepoDir(struct gitData* data, char* repoDirPath) {
                 errno = 0;
                 data->trackedPaths = malloc(sizeof(char*) * MAXNUMPATHS);
                 if (errno) {
+                    obs_log(LOG_ERROR, "AddGitRepoDir: %s", strerror(errno));
                     perror("git-diff-interface(addGitRepoDir)");
                     return;
                 }
@@ -396,6 +409,7 @@ void addGitRepoDir(struct gitData* data, char* repoDirPath) {
                 data->trackedPaths[data->numTrackedFiles] =
                     malloc(sizeof(char) * (strlen(tmpFilePath) + 1));
                 if (errno) {
+                    obs_log(LOG_ERROR, "AddGitRepoDir: %s", strerror(errno));
                     perror("git-diff-interface(addGitRepoDir)");
                     return;
                 }
@@ -413,6 +427,7 @@ void addGitRepoDir(struct gitData* data, char* repoDirPath) {
                 sizeof(char) *
                 (strlen(dirStruct->d_name) + strlen(repoDirPath) + 2));
             if (errno) {
+                obs_log(LOG_ERROR, "AddGitRepoDir: %s", strerror(errno));
                 perror("git-diff-interface(addGitRepoDir)");
                 continue;
             }
@@ -430,6 +445,8 @@ void addGitRepoDir(struct gitData* data, char* repoDirPath) {
                         malloc(sizeof(char) * (strlen(tmpFilePath) + 1));
                     if (errno) {
                         perror("git-diff-interface(addGitRepoDir)");
+                        obs_log(
+                            LOG_ERROR, "AddGitRepoDir: %s", strerror(errno));
                         continue;
                     }
                     strncpy(

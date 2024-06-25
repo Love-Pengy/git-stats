@@ -192,6 +192,7 @@
 - ~~don't allow overflow indicators to go over 4~~
 - ~~fix inconsistent spacing when using different modes/settings~~
 
+- fix performance issues
 - figure out how to use gh actions to build
 - test the build on a different env (prolly arch peecee)
 
@@ -220,6 +221,11 @@ valgrind --leak-check=full \
          --log-file=valgrind-out.txt \
          ./executable exampleParam1
 ```
+
+LOG_ERROR: for errors that don't require the program to exit
+LOG_WARNING: when error occurs and is recoverable
+LOG_INFO: info for whats going on
+LOG_DEBUG: use for debug //// only sent when debug is true
 
 ### Psuedo for updating the deletion source
 

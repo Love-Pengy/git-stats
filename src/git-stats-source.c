@@ -20,16 +20,10 @@ static bool testMode = false;
 // global for the initial startup
 static bool INIT_RUN = true;
 
-// LOG_ERROR: for errors that don't require the program to exit
-// LOG_WARNING: when error occurs and is recoverable
-// LOG_INFO: info for whats going on
-// LOG_DEBUG: use for debug //// only sent when debug is true
-
 static void git_stats_update(void*, obs_data_t*);
 
 static void git_stats_get_defaults(obs_data_t*);
 
-// static bool plugin_created = false;
 static obs_properties_t* git_stats_properties(void*);
 struct gitStatsInfo {
     obs_source_t* insertionSource;
@@ -235,8 +229,8 @@ static void git_stats_update(void* data, obs_data_t* settings) {
             info->data->trackedPaths[i] =
                 malloc(sizeof(char) * strlen(currVal) + 1);
             if (errno) {
-                strerror(errno);
-                obs_log(LOG_ERROR, "Malloc Failed");
+                obs_log(
+                    LOG_ERROR, "Singular Update Failed: %s", strerror(errno));
                 info->data->trackedPaths[i] = NULL;
                 info->data->numTrackedFiles++;
                 continue;
