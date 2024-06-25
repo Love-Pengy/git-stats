@@ -283,7 +283,7 @@ void updateTrackedFiles(struct gitData* data) {
 
     long insertions = 0;
     long deletions = 0;
-    for (int i = 0; i < data->numTrackedFiles; i++) {
+    for (volatile int i = 0; i < data->numTrackedFiles; i++) {
         FILE* fp;
         if (!checkPath(data->trackedPaths[i])) {
             continue;
