@@ -18,7 +18,7 @@
 static bool testMode = false;
 
 // global for the initial startup
-static bool INIT_RUN = true;
+static int INIT_RUN = 1;
 
 static void git_stats_update(void*, obs_data_t*);
 
@@ -280,7 +280,7 @@ static void git_stats_tick(void* data, float seconds) {
 
     info->time_passed += seconds;
     if (info->time_passed > info->data->delayAmount || INIT_RUN) {
-        INIT_RUN |= 1;
+        INIT_RUN &= 0;
         info->time_passed = 0;
         if (testMode) {
             int numOverload = 4;

@@ -191,8 +191,8 @@
   - cannot reproduce at all come back to this if its still an issue
 - ~~don't allow overflow indicators to go over 4~~
 - ~~fix inconsistent spacing when using different modes/settings~~
+- ~~fix performance issues~~
 
-- fix performance issues
 - figure out how to use gh actions to build
 - test the build on a different env (prolly arch peecee)
 
@@ -208,10 +208,12 @@
 - mess around with p_threads
 - refactor to make things more concise
 - add ability to change overflow icon
+- make it blazingly fast
 
 ## DEBUG NOTES
 
-- currently running obs normally seg faults but running with the -O0 and the following valgring command:
+- ~~currently running obs normally seg faults but running with the -O0 and the following valgring command:~~
+  - doesn't seg fault anymore with optimizations on!
 
 ```
 valgrind --leak-check=full \
