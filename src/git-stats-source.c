@@ -13,6 +13,7 @@
 
 #define OVERLOAD_VAL 9999
 #define MAX_OVERLOAD 4
+#define DEFAULT_OVERLOAD_CHAR '.'
 
 // global for putting source in "max number" mode
 static bool testMode = false;
@@ -38,7 +39,6 @@ struct gitStatsInfo {
     uint32_t cy;
     // time passed between the updates
     float time_passed;
-
     // the information that we get from our git stats thingy madonker
     struct gitData* data;
 };
@@ -63,6 +63,8 @@ static void* git_stats_create(obs_data_t* settings, obs_source_t* source) {
     info->data->deleted = 0;
     info->data->insertionEnabled = false;
     info->data->deletionEnabled = false;
+    // malloc 8 bytes for unicode character
+    info->data->overloadChar = malloc(16);
 
     info->insertionSource =
         obs_source_create(text_source_id, "insertionSource", settings, NULL);
@@ -125,6 +127,7 @@ static uint32_t git_stats_height(void* data) {
 static void git_stats_get_defaults(obs_data_t* settings) {
     // repo settings
     obs_data_set_default_int(settings, "delay", 5);
+    obs_data_set_default_string(settings, "overload_char", ".");
     obs_data_set_default_bool(settings, "untracked_files", false);
 
     // shared settings
@@ -142,7 +145,8 @@ static void git_stats_get_defaults(obs_data_t* settings) {
     obs_data_set_default_int(settings, "color2", 0xFF00FF00);
     obs_data_set_default_bool(settings, "insertion_symbol", true);
 
-    // make DejaVu Sans Mono the default because sans serif is not mono
+    // make DejaVu Sans Mono the default because sans serif is not mono and
+    // doesn't require nerd fonts installed
     obs_data_t* font_obj = obs_data_create();
     obs_data_set_default_string(font_obj, "face", "DejaVu Sans Mono");
     obs_data_set_default_int(font_obj, "size", 256);
@@ -179,6 +183,12 @@ static void git_stats_update(void* data, obs_data_t* settings) {
     obs_data_set_bool(
         info->deletionSource->context.settings, "drop_shadow",
         obs_data_get_bool(settings, "drop_shadow"));
+
+    if (strcmp(obs_data_get_string(settings, "overload_char"), "") &&
+        obs_data_get_string(settings, "overload_char")) {
+        info->data->overloadChar =
+            extractUnicode(obs_data_get_string(settings, "overload_char"));
+    }
 
     if (!obs_data_get_bool(settings, "insertion_properties")) {
         info->data->insertionEnabled = false;
@@ -284,10 +294,10 @@ static void git_stats_tick(void* data, float seconds) {
         info->time_passed = 0;
         if (testMode) {
             int numOverload = 4;
-            char overloadString[6] = " ";
+            char overloadString[48] = " ";
+            // TODO: figure out why overload string is not outputting correctly
             for (int i = 1; i < numOverload + 1; i++) {
-                overloadString[i] = '.';
-                overloadString[i + 1] = '\0';
+                strcat(overloadString, info->data->overloadChar);
             }
             char buffer[30] = "";
             snprintf(
@@ -522,6 +532,10 @@ static obs_properties_t* git_stats_properties(void* unused) {
 
     obs_properties_add_int(
         repo_props, "delay", "Delay Between Updates", 0, INT_MAX, 1);
+
+    obs_properties_add_text(
+        repo_props, "overload_char", "Character Shown For Overload",
+        OBS_TEXT_DEFAULT);
 
     obs_properties_add_bool(
         repo_props, "untracked_files", "Account For Untracked Files");

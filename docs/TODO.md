@@ -5,10 +5,8 @@
 - [ASSUMPTIONS](#assumptions)
 - [TIMELINE](#timeline)
 - [TODO](#todo)
+- [Formatting TODO](#formatting-todo)
 - [Optimistic](#optimistic)
-- [DEBUG NOTES](#debug-notes)
-  - [Psuedo for updating the deletion source](#psuedo-for-updating-the-deletion-source)
-  - [Psuedo For Dirs](#psuedo-for-dirs)
 <!--toc:end-->
 
 ## FEATURES
@@ -40,10 +38,15 @@
 
 ## ASSUMPTIONS
 
-- ~~when grabbing input from the obs ui/user the output of that will be an array of strings~~
-  - this assumption was wrong! It's one big string that can be delimited by newline characters~
-- ~~if we have the string "insertions" within the output of git diff then we have a full valid output~~
-  - this assumption was also wrong! for git diff you can have just deletions, just insertions, or both. In addition to this the word also changes depending on if its plural or not!~
+- ~~when grabbing input from the obs ui/user the output of that will be an array
+of strings~~
+  - this assumption was wrong! It's one big string that can be delimited
+  by newline characters~
+- ~~if we have the string "insertions" within the output of git diff then we
+have a full valid output~~
+  - this assumption was also wrong! for git diff you can have just deletions,
+  just insertions, or both. In addition to this the word also changes
+  depending on if its plural or not!~
 - ~~we are expecting the end directory to have the / at the end~~
   - not a necessary assumption as it can just be added at the end~
 - no one in their right mind would have either 4 mil insertions or deletions
@@ -51,7 +54,7 @@
 ## TIMELINE
 
 - ~~create the utility using purely the command line~~
-- ~~fix builing of the plugin~~
+- ~~fix building of the plugin~~
 - slap that bad boi in obs form
 - $$profit$$
 
@@ -66,7 +69,7 @@
 - ~~add all of those together~~
   - ~~use a long for this~~
 
-- ~~REWRITE THE ENTIRITY OF THE BASE~~
+- ~~REWRITE THE ENTIRETY OF THE BASE~~
   - ~~interface with the freetype2 text source itself~~
   - ~~get the source to showup correctly~~
   - ~~get the rendering working correctly~~
@@ -79,9 +82,12 @@
   - as you've seen it gets very messy if doing everything in the source file
 
 - ~~decide if I want hash table or hash map (leaning towards map)~~
-- ~~put two hash tables or maps inside of the obs source data structure to represent both tracked and untracked files~~
-  - ~~replaced this with one hashmap and an array of paths because tracked files only need the paths~~
-- ~~update hashtable and hashmap to be taking untracked files instead of boarding passes~~
+- ~~put two hash tables or maps inside of the obs source data structure to
+represent both tracked and untracked files~~
+  - ~~replaced this with one hashmap and an array of paths because tracked
+  files only need the paths~~
+- ~~update hashtable and hashmap to be taking untracked files instead of
+boarding passes~~
 - ~~update the CMakeLists file to include the hashmap library~~
 - ~~get rid of the following properties for the text source:~~
   - ~~text~~
@@ -90,10 +96,13 @@
   - ~~chat log lines~~
   - ~~text file~~
 - ~~when calling the update function for the source, when gettings the repos you must delimit the string by newlines in order to get the paths~~
-- ~~we interface with both or one of these handlers depending on what the use set the settings to~~
-  - ~~ex. if the user does not want untracked files then we would never update the untracked portion of the data~~
+- ~~we interface with both or one of these handlers depending on what the
+use set the settings to~~
+  - ~~ex. if the user does not want untracked files then we would never update
+  the untracked portion of the data~~
 - ~~expand the ~ into an absolute path~~
-- ~~figure out why we get garbage for output when we have a valid path (working when path is invalid)~~
+- ~~figure out why we get garbage for output when we have a valid path
+(working when path is invalid)~~
 - ~~fix the untracked files not going into the hashmap~~
 - ~~get the updated text working properly~~
   - ~~the git repos need to be accurately found~~
@@ -104,27 +113,39 @@
 - ~~fix the typing issue~~
   - ~~crashes when typing out the repo path~~
 - ~~change delay to an integer~~
-- ~~create handlers for both untracked and tracked files (THIS IS GOING TO BE IN THE UPDATE FUNCTION)~~
+- ~~create handlers for both untracked and tracked files
+(THIS IS GOING TO BE IN THE UPDATE FUNCTION)~~
   - ~~for tracked you just need to get the info from the git diff output~~
   - ~~for untracked you need to actually go through and manage those~~
-- ~~in updateUntrackedFile fix time issue (timing is not correct on the checking if the file has been edited)~~
-- ~~make a function that goes through the untracked files and deleted ones that should not be there anymore~~
-  - ~~do this by checking if a repo path is a substring in the entire path of the untraccked file~~
-    - this was ignored because it its more expensive to check all keys for the substring than it is to just redo the hashmap
-- ~~make the plugin run off rip (shouldn't have to update something before getting output)~~
-- ~~make a clear hashmap function and use it at update so that untracked files can be live updated as well~~
+- ~~in updateUntrackedFile fix time issue (timing is not correct on the checking
+if the file has been edited)~~
+- ~~make a function that goes through the untracked files and deleted ones
+that should not be there anymore~~
+  - ~~do this by checking if a repo path is a substring in the entire path
+  of the untracked file~~
+    - this was ignored because it its more expensive to check all keys for the substring
+    than it is to just redo the hashmap
+- ~~make the plugin run off rip (shouldn't have to update something
+before getting output)~~
+- ~~make a clear hashmap function and use it at update so that untracked files
+can be live updated as well~~
   - basically implemented when hashmap was recreated
-- ~~allow updating of the source in the update function just don't update the contents of it in relation to the plugin~~
-- ~~make untracked files not accounted for when unticking untracked files bool from a ticked state~~
+- ~~allow updating of the source in the update function just don't update
+the contents of it in relation to the plugin~~
+- ~~make untracked files not accounted for when unticking untracked
+files bool from a ticked state~~
 - ~~see if its possible to use restrict keyword to fix pointer issue for -O0 compilation~~
 - ~~reorder the properties so that the text properties are at the bottom~~
-  - ~~instead use a group to better categorize the options (unless I find a way to reorder)~~
-    - ~~changed this to be both at the same time. Grouping is put into place and order has been changed to put git-stats settings on top~~
+  - ~~instead use a group to better categorize the options
+  (unless I find a way to reorder)~~
+    - ~~changed this to be both at the same time. Grouping is put into place
+    and order has been changed to put git-stats settings on top~~
 - ~~change the single repo list to this:  ~~
   - ~~<https://docs.obsproject.com/reference-properties?highlight=properties#c.obs_properties_add_editable_list>~~
-  - this does not give me the functionality I want as I am working with dirs not files
+  - this does not give me the functionality I want as I am working with
+  dirs not files
 - ~~figure out how to allow directories to be specified that hold multiple repos~~
-  - ~~make this a seperate field~~
+  - ~~make this a separate field~~
   - ~~use this to make it purdyy~~
     - ~~<https://docs.obsproject.com/reference-properties?highlight=properties#c.obs_properties_add_path>~~
   - ~~check if a directory already exists in the tracked paths array before adding it via addGitRepoDir~~
@@ -176,13 +197,13 @@
 - ~~change insertion source name to insertion source (current it is called text source)~~
   - ~~change the insertion group name to insertion_properties (currently it is text_properties)~~
 - ~~figure out a way to do popups or something else for the user so they know when errors have happened~~
-  - ~~checkoiut this: <https://docs.obsproject.com/reference-properties#c.obs_property_text_set_info_type>~~
+  - ~~checkout this: <https://docs.obsproject.com/reference-properties#c.obs_property_text_set_info_type>~~
     - continue using the callback, but see if it doesn't reset cursor back to beginning if you pass in a different group to the setter for the callback
     - ~~still need to get the error message to show up~~
     ~~- oh yeah and also remove the testing stuff for hte callback~~
   - ~~current idea is to use the info string type for the properties, but need to figure out how to update the property~~
   - tell user its actually an error (prepend INVALID: to the error string)
-  - **MAJOR CHANGE OF PLANS:** going to attemp to use an editable list instead so that erorrs theoretically don't need to be passed to the user
+  - **MAJOR CHANGE OF PLANS:** going to attempt to use an editable list instead so that errors theoretically don't need to be passed to the user
 - ~~figure out how to the editable list works and how to implement that into the current solution~~
   - ~~figure out how to add the property~~
   - ~~figure out how to get the strings from the property~~
@@ -193,26 +214,47 @@
 - ~~fix inconsistent spacing when using different modes/settings~~
 - ~~fix performance issues~~
 
+- get rid of memory leak
 - figure out how to use gh actions to build
 - test the build on a different env (prolly arch peecee)
 
 ## Formatting TODO
 
 - ~~pick either camel case or snake case~~
-  - ~~camel case is personally preffered but it is probably easier to do snake since thats what all of the obs functions are in~~
+  - ~~camel case is personally preferred but it is probably easier to do snake since thats what all of the obs functions are in~~
 
 ## Optimistic
 
 ~~- debug the need to run with -O0~~
 
-- mess around with p_threads
-- refactor to make things more concise
 - add ability to change overflow icon
+  - USE THIS TO EXTRACT THE FIRST UNICODE CHARACTER:
+
+    ```C
+      #include <string.h>
+      #include <locale.h>
+      #include <uchar.h>
+      char *test = "\uf066";
+      char buff[1000] = {0};
+      char32_t specChar;
+
+      mbstate_t mbs;
+      setlocale(LC_ALL, "");
+      memset(&mbs, 0, sizeof(mbs));
+      size_t size = mbrtoc32(&specChar, test, 16, &mbs);
+      c32rtomb(buff, specChar, &mbs);
+      printf("%s\n", buff);
+    ```
+
+    - figure out why the overload isn't taking the unicode character properly
+
+- refactor to make things more concise
 - make it blazingly fast
+- mess around with p_threads
 
 ## DEBUG NOTES
 
-- ~~currently running obs normally seg faults but running with the -O0 and the following valgring command:~~
+- ~~currently running obs normally seg faults but running with the -O0 and the following valgrind command:~~
   - doesn't seg fault anymore with optimizations on!
 
 ```
@@ -222,6 +264,7 @@ valgrind --leak-check=full \
          --verbose \
          --log-file=valgrind-out.txt \
          ./executable exampleParam1
+
 ```
 
 LOG_ERROR: for errors that don't require the program to exit

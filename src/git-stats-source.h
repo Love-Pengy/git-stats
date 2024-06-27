@@ -15,4 +15,5 @@ struct gitData {
     bool deletionEnabled;
     long deleted;
     int delayAmount;
+    char* overloadChar;
 };

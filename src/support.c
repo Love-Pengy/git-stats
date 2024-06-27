@@ -1,7 +1,10 @@
 #include "support.h"
 
+#include <locale.h>
 #include <obs-module.h>
 #include <stdlib.h>
+#include <string.h>
+#include <uchar.h>
 
 #include "git-diff-interface.h"
 const char* PLUGIN_NAME = "git-stats";
@@ -84,4 +87,36 @@ bool checkRepoExists(char** repos, int amtRepos, char* checkPath) {
         }
     }
     return (false);
+}
+
+// extracts first unicode character from a given string
+char* extractUnicode(const char* input) {
+    printf("INPUT: %s\n", input);
+    char* buff = malloc(sizeof(char) * strlen(input) + 1);
+    buff[0] = '\0';
+    char* test = malloc(sizeof(char) * strlen(input)+1);
+    test[0] = '\0';
+    strncpy(test, input, strlen(input) + 1);
+    char32_t specChar;
+    mbstate_t mbs;
+    char* locale = setlocale(LC_ALL, "");
+
+    if (!locale) {
+        obs_log(LOG_ERROR, "Locale Could Not Be Set");
+        free(buff);
+        return (NULL);
+    }
+    memset(&mbs, 0, sizeof(mbs));
+    
+    size_t size = mbrtoc32(&specChar, test, 16, &mbs);
+    if (size == (size_t)-1 || size == (size_t)-2) {
+        obs_log(LOG_WARNING, "Unicode Character Not Found");
+        return (NULL);
+    }
+    int cpy = c32rtomb(buff, specChar, &mbs);
+    if (cpy < 0) {
+        obs_log(LOG_ERROR, "Failed To Convert Unicode Character");
+        return (NULL);
+    }
+    return (buff);
 }
