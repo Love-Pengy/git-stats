@@ -228,7 +228,7 @@ files bool from a ticked state~~
 ~~- debug the need to run with -O0~~
 
 - add ability to change overflow icon
-  - USE THIS TO EXTRACT THE FIRST UNICODE CHARACTER:
+  - ~~USE THIS TO EXTRACT THE FIRST UNICODE CHARACTER:~~
 
     ```C
       #include <string.h>

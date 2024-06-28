@@ -13,7 +13,7 @@
 
 #define OVERLOAD_VAL 9999
 #define MAX_OVERLOAD 4
-#define DEFAULT_OVERLOAD_CHAR '.'
+#define DEFAULT_OVERLOAD_CHAR "."
 
 // global for putting source in "max number" mode
 static bool testMode = false;
@@ -65,6 +65,10 @@ static void* git_stats_create(obs_data_t* settings, obs_source_t* source) {
     info->data->deletionEnabled = false;
     // malloc 8 bytes for unicode character
     info->data->overloadChar = malloc(16);
+    info->data->overloadChar[0] = '\0';
+    strncpy(
+        info->data->overloadChar, DEFAULT_OVERLOAD_CHAR,
+        strlen(DEFAULT_OVERLOAD_CHAR) + 1);
 
     info->insertionSource =
         obs_source_create(text_source_id, "insertionSource", settings, NULL);
@@ -186,8 +190,22 @@ static void git_stats_update(void* data, obs_data_t* settings) {
 
     if (strcmp(obs_data_get_string(settings, "overload_char"), "") &&
         obs_data_get_string(settings, "overload_char")) {
-        info->data->overloadChar =
+        char* unicode =
             extractUnicode(obs_data_get_string(settings, "overload_char"));
+        if (unicode) {
+            strcpy(info->data->overloadChar, unicode);
+            printf("UNI: %s\n", info->data->overloadChar);
+        }
+        else {
+            strncpy(
+                info->data->overloadChar, DEFAULT_OVERLOAD_CHAR,
+                strlen(DEFAULT_OVERLOAD_CHAR) + 1);
+        }
+    }
+    else {
+        strncpy(
+            info->data->overloadChar, DEFAULT_OVERLOAD_CHAR,
+            strlen(DEFAULT_OVERLOAD_CHAR) + 1);
     }
 
     if (!obs_data_get_bool(settings, "insertion_properties")) {
@@ -296,7 +314,7 @@ static void git_stats_tick(void* data, float seconds) {
             int numOverload = 4;
             char overloadString[48] = " ";
             // TODO: figure out why overload string is not outputting correctly
-            for (int i = 1; i < numOverload + 1; i++) {
+            for (volatile int i = 1; i < numOverload + 1; i++) {
                 strcat(overloadString, info->data->overloadChar);
             }
             char buffer[30] = "";
