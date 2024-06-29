@@ -36,6 +36,8 @@ struct fileType {
     long linesAdded;
 };
 
+char* getUntrackedFilePath(untrackedFile* input) { return ((*input)->path); }
+
 void copyUntrackedFile(untrackedFile* dest, untrackedFile* src) {
     if ((*src) == NULL) {
         (*dest) = NULL;

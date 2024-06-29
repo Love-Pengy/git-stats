@@ -1,6 +1,7 @@
 #pragma once
 #include "hashTable.h"
 typedef struct fileType* untrackedFile;
+char* getUntrackedFilePath(untrackedFile*);
 void freeUntrackedFile(untrackedFile*);
 struct tm* getModifiedTime(char*);
 long getLinesInFile(char*);

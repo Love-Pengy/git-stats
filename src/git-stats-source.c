@@ -194,7 +194,6 @@ static void git_stats_update(void* data, obs_data_t* settings) {
             extractUnicode(obs_data_get_string(settings, "overload_char"));
         if (unicode) {
             strcpy(info->data->overloadChar, unicode);
-            printf("UNI: %s\n", info->data->overloadChar);
         }
         else {
             strncpy(
@@ -311,9 +310,16 @@ static void git_stats_tick(void* data, float seconds) {
         INIT_RUN &= 0;
         info->time_passed = 0;
         if (testMode) {
-            int numOverload = 4;
-            char overloadString[48] = " ";
-            // TODO: figure out why overload string is not outputting correctly
+            int numOverload = MAX_OVERLOAD;
+            errno = 0;
+            char* overloadString =
+                malloc(sizeof(char) * (MB_CUR_MAX * numOverload));
+            if (errno) {
+                obs_log(LOG_ERROR, "Malloc Failed");
+                return;
+            }
+            overloadString[0] = ' ';
+            overloadString[1] = '\0';
             for (volatile int i = 1; i < numOverload + 1; i++) {
                 strcat(overloadString, info->data->overloadChar);
             }
@@ -412,13 +418,34 @@ static void git_stats_tick(void* data, float seconds) {
         if (info->data->insertionEnabled) {
             long value = info->data->added;
             int numOverload = value / OVERLOAD_VAL;
+            value = value % OVERLOAD_VAL;
             numOverload > MAX_OVERLOAD ? numOverload = MAX_OVERLOAD
                                        : numOverload;
-            value = value % OVERLOAD_VAL;
-            char overloadString[6] = " ";
-            for (int i = 1; i < numOverload + 1; i++) {
-                overloadString[i] = '.';
-                overloadString[i + 1] = '\0';
+            char* overloadString = NULL;
+            if (!numOverload) {
+                errno = 0;
+                overloadString = malloc(sizeof(char) * 2);
+
+                if (errno) {
+                    obs_log(LOG_ERROR, "Malloc Failed");
+                    return;
+                }
+                overloadString[0] = '\0';
+            }
+            else {
+                errno = 0;
+                overloadString = malloc(
+                    sizeof(char) *
+                    (strlen(info->data->overloadChar) * numOverload));
+                if (errno) {
+                    obs_log(LOG_ERROR, "Malloc Failed");
+                    return;
+                }
+                overloadString[1] = '\0';
+                overloadString[0] = ' ';
+            }
+            for (volatile int i = 1; i < numOverload + 1; i++) {
+                strcat(overloadString, info->data->overloadChar);
             }
 
             char outputBuffer[100] = "\0";
@@ -459,19 +486,40 @@ static void git_stats_tick(void* data, float seconds) {
         char outputBuffer[100] = "\0";
         if (info->data->deletionEnabled) {
             long insertionValue = info->data->added % OVERLOAD_VAL;
-            long value = info->data->deleted;
-            int numOverload = value / OVERLOAD_VAL;
+            long deletionValue = info->data->deleted;
+            int numOverload = deletionValue / OVERLOAD_VAL;
             numOverload > MAX_OVERLOAD ? numOverload = MAX_OVERLOAD
                                        : numOverload;
-            value = value % OVERLOAD_VAL;
-            char overloadString[6] = " ";
+            deletionValue = deletionValue % OVERLOAD_VAL;
+            char* overloadString = NULL;
+            if (!numOverload) {
+                errno = 0;
+                overloadString = malloc(sizeof(char) * 2);
+                if (errno) {
+                    obs_log(LOG_ERROR, "Malloc Failed");
+                    return;
+                }
+
+                overloadString[0] = '\0';
+            }
+            else {
+                errno = 0;
+                overloadString = malloc(
+                    sizeof(char) *
+                    (strlen(info->data->overloadChar) * numOverload));
+                if (errno) {
+                    obs_log(LOG_ERROR, "Malloc Failed");
+                    return;
+                }
+                overloadString[1] = '\0';
+                overloadString[0] = ' ';
+            }
             for (int i = 1; i < numOverload + 1; i++) {
-                overloadString[i] = '.';
-                overloadString[i + 1] = '\0';
+                strcat(overloadString, info->data->overloadChar);
             }
             char spaces[7] = "";
-            int insertionSize = strlen(ltoa(insertionValue)) + 2;
-            for (int i = 0; i < insertionSize; i++) {
+            int deletionSize = strlen(ltoa(insertionValue)) + 2;
+            for (int i = 0; i < deletionSize; i++) {
                 spaces[i] = ' ';
                 spaces[i + 1] = '\0';
             }
@@ -480,8 +528,9 @@ static void git_stats_tick(void* data, float seconds) {
                 snprintf(
                     outputBuffer,
                     strlen(overloadString) + (strlen(spaces) * 2) +
-                        strlen(ltoa(info->data->deleted)) + 3,
-                    "%s%s\n%s-%s", spaces, overloadString, spaces, ltoa(value));
+                        strlen(ltoa(deletionValue)) + 3,
+                    "%s%s\n%s-%s", spaces, overloadString, spaces,
+                    ltoa(deletionValue));
                 obs_data_set_string(
                     info->deletionSource->context.settings, "text",
                     outputBuffer);
@@ -493,9 +542,9 @@ static void git_stats_tick(void* data, float seconds) {
                 snprintf(
                     outputBuffer,
                     strlen(overloadString) + (strlen(spaces) * 2) +
-                        strlen(ltoa(value)) + 3,
+                        strlen(ltoa(deletionValue)) + 3,
                     "%s%s\n%s %s", spaces, overloadString, spaces,
-                    ltoa(info->data->deleted));
+                    ltoa(deletionValue));
                 obs_data_set_string(
                     info->deletionSource->context.settings, "text",
                     outputBuffer);
@@ -506,8 +555,8 @@ static void git_stats_tick(void* data, float seconds) {
         }
         else {
             char spaces[7] = "";
-            int insertionSize = strlen(ltoa(info->data->added)) + 2;
-            for (int i = 0; i < insertionSize; i++) {
+            int deletionSize = strlen(ltoa(info->data->added)) + 2;
+            for (int i = 0; i < deletionSize; i++) {
                 spaces[i] = ' ';
                 spaces[i + 1] = '\0';
             }

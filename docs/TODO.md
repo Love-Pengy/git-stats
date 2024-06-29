@@ -214,9 +214,12 @@ files bool from a ticked state~~
 - ~~fix inconsistent spacing when using different modes/settings~~
 - ~~fix performance issues~~
 
+- add custom icons for the overload indicator
 - get rid of memory leak
 - figure out how to use gh actions to build
 - test the build on a different env (prolly arch peecee)
+
+## Refactor Notes
 
 ## Formatting TODO
 
@@ -227,7 +230,7 @@ files bool from a ticked state~~
 
 ~~- debug the need to run with -O0~~
 
-- add ability to change overflow icon
+- ~~add ability to change overflow icon~~
   - ~~USE THIS TO EXTRACT THE FIRST UNICODE CHARACTER:~~
 
     ```C
@@ -244,9 +247,9 @@ files bool from a ticked state~~
       size_t size = mbrtoc32(&specChar, test, 16, &mbs);
       c32rtomb(buff, specChar, &mbs);
       printf("%s\n", buff);
-    ```
+    ``` 
 
-    - figure out why the overload isn't taking the unicode character properly
+    - ~~figure out why the overload isn't taking the unicode character properly~~
 
 - refactor to make things more concise
 - make it blazingly fast
@@ -280,7 +283,7 @@ LOG_DEBUG: use for debug //// only sent when debug is true
 
 ### Psuedo For Dirs
 
-**NOTE: THIS IS RUN ONLY ON UPDATE AFTER THE UPDATING AND CLEARING OF THE TRACKED PATHS**
+** NOTE: THIS IS RUN ONLY ON UPDATE AFTER THE UPDATING AND CLEARING OF THE TRACKED PATHS **
 
 - ~~grab repo dir from properties~~
 - ~~verify that repo exists~~
@@ -289,3 +292,7 @@ LOG_DEBUG: use for debug //// only sent when debug is true
   - ~~verify that the dirs don't already exist~~
   - ~~if is valid git repo add to tracked paths~~
   - ~~else skip this dir~~
+
+## README 
+- for ideal spacing you want a monospaced nerd font
+
