@@ -8,7 +8,7 @@ Plugin that implements the [git-linestats-widget](https://github.com/BryanHaley/
 
 This plugin aims to keep the main features of the git-linestats-widget while automating the process through obs
 
-**NOTE:** This plugin is make for linux and linux only at the moment. This may change later but for now it is linux only.
+**NOTE:** This plugin is currently designed for Linux systems only. This may change in the future, but for now, it is Linux-exclusive.
 
 Features:
 
