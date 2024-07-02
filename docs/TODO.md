@@ -213,9 +213,10 @@ files bool from a ticked state~~
 - ~~don't allow overflow indicators to go over 4~~
 - ~~fix inconsistent spacing when using different modes/settings~~
 - ~~fix performance issues~~
+- ~~add custom icons for the overload indicator~~
 
-- add custom icons for the overload indicator
 - get rid of memory leak
+- make update not reset it to 0 0
 - figure out how to use gh actions to build
 - test the build on a different env (prolly arch peecee)
 
@@ -247,12 +248,13 @@ files bool from a ticked state~~
       size_t size = mbrtoc32(&specChar, test, 16, &mbs);
       c32rtomb(buff, specChar, &mbs);
       printf("%s\n", buff);
-    ``` 
+    ```
 
     - ~~figure out why the overload isn't taking the unicode character properly~~
 
 - refactor to make things more concise
 - make it blazingly fast
+- implement profiler or at least learn how it works
 - mess around with p_threads
 
 ## DEBUG NOTES

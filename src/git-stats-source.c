@@ -101,6 +101,17 @@ static void git_stats_destroy(void* data) {
     obs_source_release(info->deletionSource);
     info->deletionSource = NULL;
 
+    free(info->data->overloadChar);
+    info->data->overloadChar = NULL;
+
+    for (int i = 0; i < info->data->numTrackedFiles; i++) {
+        free(info->data->trackedPaths[i]);
+    }
+
+    if (info->data->untracked) {
+        freeHM(&(info->data->untracked));
+    }
+
     bfree(info->data);
     info->data = NULL;
 
@@ -169,9 +180,10 @@ static void git_stats_update(void* data, obs_data_t* settings) {
     UNUSED_PARAMETER(data);
 
     // copy settings from dummy property to the deletion text source
+    obs_data_t* insertionFont = obs_data_get_obj(settings, "font");
     obs_data_set_obj(
-        info->deletionSource->context.settings, "font",
-        obs_data_get_obj(settings, "font"));
+        info->deletionSource->context.settings, "font", insertionFont);
+    obs_data_release(insertionFont);
     obs_data_set_bool(
         info->deletionSource->context.settings, "antialiasing",
         obs_data_get_bool(settings, "antialiasing"));
@@ -194,6 +206,7 @@ static void git_stats_update(void* data, obs_data_t* settings) {
             extractUnicode(obs_data_get_string(settings, "overload_char"));
         if (unicode) {
             strcpy(info->data->overloadChar, unicode);
+            free(unicode);
         }
         else {
             strncpy(
@@ -243,6 +256,7 @@ static void git_stats_update(void* data, obs_data_t* settings) {
         if (info->data->trackedPaths) {
             for (int i = 0; i < info->data->numTrackedFiles; i++) {
                 free(info->data->trackedPaths[i]);
+                info->data->trackedPaths[i] = NULL;
             }
         }
         else {
@@ -250,8 +264,8 @@ static void git_stats_update(void* data, obs_data_t* settings) {
         }
         info->data->numTrackedFiles = 0;
         for (size_t i = 0; i < obs_data_array_count(dirArray); i++) {
-            const char* currVal =
-                obs_data_get_string(obs_data_array_item(dirArray, i), "value");
+            obs_data_t* currItem = obs_data_array_item(dirArray, i);
+            const char* currVal = obs_data_get_string(currItem, "value");
             errno = 0;
             info->data->trackedPaths[i] =
                 malloc(sizeof(char) * strlen(currVal) + 1);
@@ -264,9 +278,10 @@ static void git_stats_update(void* data, obs_data_t* settings) {
             }
             strncpy(info->data->trackedPaths[i], currVal, strlen(currVal) + 1);
             info->data->numTrackedFiles++;
+            obs_data_release(currItem);
         }
     }
-
+    obs_data_array_release(dirArray);
     if (strcmp(obs_data_get_string(settings, "repositories_directory"), "") &&
         (obs_data_get_string(settings, "repositories_directory") != NULL)) {
         addGitRepoDir(
@@ -324,16 +339,18 @@ static void git_stats_tick(void* data, float seconds) {
                 strcat(overloadString, info->data->overloadChar);
             }
             char buffer[30] = "";
+            char* overloadValueString = ltoa(OVERLOAD_VAL);
             snprintf(
-                buffer, strlen(ltoa(OVERLOAD_VAL)) + strlen(overloadString) + 3,
-                "%s\n+%s", overloadString, ltoa(OVERLOAD_VAL));
+                buffer,
+                strlen(overloadValueString) + strlen(overloadString) + 3,
+                "%s\n+%s", overloadString, overloadValueString);
             obs_data_set_string(
                 info->insertionSource->context.settings, "text", buffer);
             obs_source_update(
                 info->insertionSource, info->insertionSource->context.settings);
 
             char spaces[7] = "";
-            int deletionSize = strlen(ltoa(OVERLOAD_VAL)) + 2;
+            int deletionSize = strlen(overloadValueString) + 2;
             for (int i = 0; i < deletionSize; i++) {
                 spaces[i] = ' ';
                 spaces[i + 1] = '\0';
@@ -341,13 +358,15 @@ static void git_stats_tick(void* data, float seconds) {
             snprintf(
                 buffer,
                 strlen(overloadString) + (strlen(spaces) * 2) +
-                    strlen(ltoa(OVERLOAD_VAL)) + 3,
+                    strlen(overloadValueString) + 3,
                 "%s%s\n%s-%s", spaces, overloadString, spaces,
-                ltoa(OVERLOAD_VAL));
+                overloadValueString);
             obs_data_set_string(
                 info->deletionSource->context.settings, "text", buffer);
             obs_source_update(
                 info->deletionSource, info->deletionSource->context.settings);
+            free(overloadValueString);
+            free(overloadString);
             return;
         }
         if (info->data->trackedPaths == NULL) {
@@ -449,12 +468,13 @@ static void git_stats_tick(void* data, float seconds) {
             }
 
             char outputBuffer[100] = "\0";
+            char* valueString = ltoa(value);
             if (obs_data_get_bool(
                     info->gitSource->context.settings, "insertion_symbol")) {
                 snprintf(
                     outputBuffer,
-                    strlen(overloadString) + strlen(ltoa(value)) + 3, "%s\n+%s",
-                    overloadString, ltoa(value));
+                    strlen(overloadString) + strlen(valueString) + 3, "%s\n+%s",
+                    overloadString, valueString);
                 obs_data_set_string(
                     info->insertionSource->context.settings, "text",
                     outputBuffer);
@@ -465,8 +485,8 @@ static void git_stats_tick(void* data, float seconds) {
             else {
                 snprintf(
                     outputBuffer,
-                    strlen(overloadString) + strlen(ltoa(value)) + 3, "%s\n %s",
-                    overloadString, ltoa(value));
+                    strlen(overloadString) + strlen(valueString) + 3, "%s\n %s",
+                    overloadString, valueString);
                 obs_data_set_string(
                     info->insertionSource->context.settings, "text",
                     outputBuffer);
@@ -474,6 +494,8 @@ static void git_stats_tick(void* data, float seconds) {
                     info->insertionSource,
                     info->insertionSource->context.settings);
             }
+            free(valueString);
+            free(overloadString);
         }
         else {
             char outputBuffer[100] = "\0";
@@ -518,19 +540,22 @@ static void git_stats_tick(void* data, float seconds) {
                 strcat(overloadString, info->data->overloadChar);
             }
             char spaces[7] = "";
-            int deletionSize = strlen(ltoa(insertionValue)) + 2;
+            char* insertionValueString = ltoa(insertionValue);
+            int deletionSize = strlen(insertionValueString) + 2;
+            free(insertionValueString);
             for (int i = 0; i < deletionSize; i++) {
                 spaces[i] = ' ';
                 spaces[i + 1] = '\0';
             }
+            char* deletionValueString = ltoa(deletionValue);
             if (obs_data_get_bool(
                     info->gitSource->context.settings, "deletion_symbol")) {
                 snprintf(
                     outputBuffer,
                     strlen(overloadString) + (strlen(spaces) * 2) +
-                        strlen(ltoa(deletionValue)) + 3,
+                        strlen(deletionValueString) + 3,
                     "%s%s\n%s-%s", spaces, overloadString, spaces,
-                    ltoa(deletionValue));
+                    deletionValueString);
                 obs_data_set_string(
                     info->deletionSource->context.settings, "text",
                     outputBuffer);
@@ -542,9 +567,9 @@ static void git_stats_tick(void* data, float seconds) {
                 snprintf(
                     outputBuffer,
                     strlen(overloadString) + (strlen(spaces) * 2) +
-                        strlen(ltoa(deletionValue)) + 3,
+                        strlen(deletionValueString) + 3,
                     "%s%s\n%s %s", spaces, overloadString, spaces,
-                    ltoa(deletionValue));
+                    deletionValueString);
                 obs_data_set_string(
                     info->deletionSource->context.settings, "text",
                     outputBuffer);
@@ -552,6 +577,8 @@ static void git_stats_tick(void* data, float seconds) {
                     info->deletionSource,
                     info->deletionSource->context.settings);
             }
+            free(deletionValueString);
+            free(overloadString);
         }
         else {
             char spaces[7] = "";

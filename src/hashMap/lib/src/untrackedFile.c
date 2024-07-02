@@ -82,14 +82,18 @@ struct tm* getModifiedTime(char* path) {
     if (errno) {
         perror("getModifiedTime");
     }
+    free(copy);
     return (output);
 }
 
 void freeUntrackedFile(untrackedFile* file) {
-    free(&((*file)->lastEdited));
-    free((*file)->path);
-    free(file);
-    file = NULL;
+    if (*file) {
+        //free(&((*file)->lastEdited));
+        free((*file)->path);
+        (*file)->path = NULL;
+        free(*file);
+        file = NULL;
+    }
 }
 
 long getLinesInFile(char* path) {
@@ -116,7 +120,7 @@ long getLinesInFile(char* path) {
     while (fgets(buffer, MAX_LINE_LENGTH, fptr)) {
         lineCount += 1;
     }
-
+    free(pathCpy);
     fclose(fptr);
     return (lineCount);
 }

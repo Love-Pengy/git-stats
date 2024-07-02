@@ -59,7 +59,9 @@ void printHM(hashMap map) {
 }
 
 void freeHM(hashMap* map) {
-    freeHashTable(&((*map)->table));
-    free(*map);
-    (*map) = NULL;
+    if (*map) {
+        freeHashTable(&((*map)->table));
+        free(*map);
+        (*map) = NULL;
+    }
 }

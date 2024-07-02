@@ -118,7 +118,9 @@ char* extractUnicode(const char* input) {
         return (NULL);
     }
     // ASSUMED: if size = 1 then its a normal character not a nerdfont character
-    else if (size == 1) {
+    else if (size == 1) {  
+        free(buff);
+        inputCpy[1] = '\0';
         return (inputCpy);
     }
     // ensure that string gets terminated in the correct spot

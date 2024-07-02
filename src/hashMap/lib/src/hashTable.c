@@ -52,12 +52,15 @@ void updateValueHT(hashTable* table, char* key, untrackedFile value) {
 }
 
 void freeHashTable(hashTable* table) {
-    for (int i = 0; i < (*table)->size; i++) {
-        freeUntrackedFile(&((*table)->files[i]));
-        free((*table)->keys[i]);
+    if (*table) {
+        for (int i = 0; i < (*table)->size; i++) {
+            freeUntrackedFile(&((*table)->files[i]));
+            free((*table)->keys[i]);
+            (*table)->keys[i] = NULL;
+        }
+        free((*table));
+        (*table) = NULL;
     }
-    free((*table));
-    (*table) = NULL;
 }
 
 // deep copy value in hash table into dest
