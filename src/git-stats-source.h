@@ -1,5 +1,4 @@
 #pragma once
-#include <obs-internal.h>
 #include <obs-module.h>
 #include <obs-source.h>
 
