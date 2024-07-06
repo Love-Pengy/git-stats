@@ -64,6 +64,9 @@ void copyUntrackedFile(untrackedFile* dest, untrackedFile* src) {
 }
 
 struct tm* getModifiedTime(char* path) {
+    if(!path){
+        return(NULL);
+    }
     struct stat attr;
     char* copy = malloc(sizeof(char) * (strlen(path) + 1));
     copy[0] = '\0';
