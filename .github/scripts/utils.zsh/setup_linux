@@ -42,7 +42,7 @@ if (( ! (${skips[(Ie)all]} + ${skips[(Ie)deps]}) )) {
     build-essential \
     libgles2-mesa-dev \
     obs-studio \
-    uthash
+    uthash-dev
 
   local -a _qt_packages=()
 
