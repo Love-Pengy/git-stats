@@ -215,9 +215,10 @@ files bool from a ticked state~~
 - ~~fix performance issues~~
 - ~~add custom icons for the overload indicator~~
 
-- get rid of memory leak
+- get rid of memory leaks
 - make update not reset it to 0 0
 - figure out how to use gh actions to build
+    - seems like I just have to turn them on because they are not automatically turned on when you fork a repo 
 - test the build on a different env (prolly arch peecee)
 
 ## Refactor Notes
