@@ -4,21 +4,18 @@
 - [Git Stats](#git-stats)
 <!--toc:end-->
 
-Plugin that implements the [git-linestats-widget](https://github.com/BryanHaley/git-linestats-widget)
+This plugin is an enhanced implementation of the [git-linestats-widget](https://github.com/BryanHaley/git-linestats-widget), designed to automate and streamline your git statistics display with OBS.
 
-This plugin aims to keep the main features of the git-linestats-widget while automating the process through obs
+**NOTE:** This plugin is currently only available for Linux. Support for other operating systems may be added in the future.
 
-**NOTE:** This plugin is make for linux and linux only at the moment. This may change later but for now it is linux only.
+## Features
 
-Features:
+- **Tracked and Untracked Files**: Specify which files to track and display.
+- **Customizable Text**: Modify font and colors to suit your preferences.
+- **Anti-Aliasing**: Ensure smooth and visually appealing text rendering.
+- **Future Enhancements**: More features are planned and will be added soon.
 
-- ability to specify tracked and untracked files
-- text modifiability (font and colors)
-- anti-aliasing
-- And More To Come
-
-Requirements:
+## Requirements
 
 - Linux System
-- A NerdFont
-  - Preferabbly a monospaced one as it will line up better
+- A Nerd Font (preferably monospaced for better alignment)
