@@ -39,7 +39,7 @@ set(_obs_gcc_c_options
     -Wunused-value
     -Wunused-variable
     -Wvla
-    -g
+    #-g
     #-O0
     #-ggdb3
 )

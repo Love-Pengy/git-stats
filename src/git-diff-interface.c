@@ -3,7 +3,6 @@
 #include <assert.h>
 #include <dirent.h>
 #include <errno.h>
-#include <obs-internal.h>
 #include <obs-module.h>
 #include <obs-source.h>
 #include <stdbool.h>
@@ -15,6 +14,8 @@
 #include "./hashMap/include/hashMap.h"
 #include "./hashMap/lib/include/untrackedFile.h"
 #include "./support.h"
+
+#define MAXOUTPUTSIZE 1024
 
 bool checkInsertions(char* input) {
     if (input == NULL) {
@@ -109,7 +110,7 @@ long getInsertionNumber(char* diffString) {
         free(diffStringCopy);
         return (0);
     }
-    char buffer[strlen(startDelim)];
+    char buffer[MAXOUTPUTSIZE];
     int buffSize = strlen(diffString) - strlen(startDelim);
     for (int i = 0; i < buffSize; i++) {
         buffer[i] = diffString[i];
@@ -146,7 +147,7 @@ long getDeletionNumber(char* diffString) {
         free(diffStringCopy);
         return (0);
     }
-    char buffer[strlen(startDelim)];
+    char buffer[MAXOUTPUTSIZE];
     for (int i = 0; i < (int)(strlen(diffString) - strlen(startDelim)); i++) {
         buffer[i] = diffString[i];
     }
@@ -163,14 +164,14 @@ long getDeletionNumber(char* diffString) {
 void createUntrackedFilesHM(struct gitData* data) {
     FILE* fp;
     char filename[1000];
-    char entirePath[1000];
+    char entirePath[1024];
 
     for (int i = 0; i < data->numTrackedFiles; i++) {
         int commandLength =
             (strlen("/usr/bin/git -C ") + strlen(data->trackedPaths[i]) +
              strlen(" ls-files --others --exclude-standard") + 1);
         errno = 0;
-        char* command = malloc(sizeof(char) * commandLength);
+        char* command = malloc(sizeof(char) * (commandLength + 1));
         if (errno) {
             perror("git-diff-interface(createUntrackedFilesHM)");
             obs_log(LOG_WARNING, "CreateUntrackedFiles: %s", strerror(errno));
@@ -179,8 +180,8 @@ void createUntrackedFilesHM(struct gitData* data) {
         command[0] = '\0';
 
         snprintf(
-            command, commandLength + 1, "%s %s %s", "/usr/bin/git -C",
-            data->trackedPaths[i], "ls-files --others --exclude-standard");
+            command, commandLength + 1, "%s%s%s", "/usr/bin/git -C ",
+            data->trackedPaths[i], " ls-files --others --exclude-standard");
 
         fp = popen(command, "r");
         free(command);
@@ -293,7 +294,6 @@ bool checkPath(char* path) {
     }
     return (true);
 }
-
 void updateTrackedFiles(struct gitData* data) {
     if (data == NULL) {
         printf("Data Struct Is NULL\n");

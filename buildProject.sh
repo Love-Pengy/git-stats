@@ -2,7 +2,7 @@
 
 rm -rf ./release/ 
 rm -rf ~/.config/obs-studio/plugins/git-stats/
-./.github/scripts/build-linux --skip-deps
+./.github/scripts/build-linux --skip-deps 
 mkdir ./release/RelWithDebInfo/share/obs/obs-plugins/git-stats/bin
 mkdir ./release/RelWithDebInfo/share/obs/obs-plugins/git-stats/bin/64bit
 cp ./release/RelWithDebInfo/lib/x86_64-linux-gnu/obs-plugins/git-stats.so ./release/RelWithDebInfo/share/obs/obs-plugins/git-stats/bin/64bit
