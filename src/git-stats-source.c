@@ -8,7 +8,6 @@
 
 #include "./git-diff-interface.h"
 #include "./hashMap/include/hashMap.h"
-#include "hashMap/lib/include/untrackedFile.h"
 #include "support.h"
 
 #define OVERLOAD_VAL 9999
@@ -58,7 +57,6 @@ static void* git_stats_create(obs_data_t* settings, obs_source_t* source) {
     info->data = bzalloc(sizeof(struct gitData));
     info->data->trackedPaths = NULL;
     info->data->numTrackedFiles = 0;
-    info->data->untracked = NULL;
     info->data->added = 0;
     info->data->deleted = 0;
     info->data->insertionEnabled = false;
@@ -108,9 +106,6 @@ static void git_stats_destroy(void* data) {
         free(info->data->trackedPaths[i]);
     }
 
-    if (info->data->untracked) {
-        freeHM(&(info->data->untracked));
-    }
 
     bfree(info->data);
     info->data = NULL;
@@ -143,7 +138,6 @@ static void git_stats_get_defaults(obs_data_t* settings) {
     // repo settings
     obs_data_set_default_int(settings, "delay", 5);
     obs_data_set_default_string(settings, "overload_char", ".");
-    obs_data_set_default_bool(settings, "untracked_files", false);
 
     // shared settings
     obs_data_set_default_bool(settings, "antialiasing", true);
@@ -287,18 +281,15 @@ static void git_stats_update(void* data, obs_data_t* settings) {
     info->data->added = 0;
     info->data->deleted = 0;
 
-    if (obs_data_get_bool(settings, "untracked_files")) {
-        info->data->untracked = createHashMap();
-        createUntrackedFilesHM(info->data);
+    if (gsSettings) {
+        obs_data_release(gsSettings);
     }
-
-    if (!obs_data_get_bool(settings, "untracked_files") &&
-        (info->data->untracked != NULL)) {
-        info->data->untracked = createHashMap();
+    if (isSettings) {
+        obs_data_release(isSettings);
     }
-    obs_data_release(gsSettings);
-    obs_data_release(isSettings);
-    obs_data_release(dsSettings);
+    if (dsSettings) {
+        obs_data_release(dsSettings);
+    }
 }
 
 // render out the source
@@ -400,10 +391,6 @@ static void git_stats_tick(void* data, float seconds) {
             info->data->deleted = 0;
             info->data->added = 0;
             updateTrackedFiles(info->data);
-        }
-        if (info->data->untracked != NULL) {
-            updateValueHM(&(info->data->untracked));
-            info->data->added += getLinesAddedHM(&(info->data->untracked));
         }
         if (info->data->insertionEnabled) {
             long value = info->data->added;
@@ -564,7 +551,7 @@ static obs_properties_t* git_stats_properties(void* unused) {
     struct gitStatsInfo* info = unused;
     UNUSED_PARAMETER(unused);
     obs_data_t* isSettings = obs_source_get_settings(info->insertionSource);
-    
+
     obs_properties_t* props = obs_properties_create();
 
     obs_properties_t* repo_props = obs_properties_create();
@@ -584,8 +571,6 @@ static obs_properties_t* git_stats_properties(void* unused) {
         repo_props, "overload_char", "Character Shown For Overload",
         OBS_TEXT_DEFAULT);
 
-    obs_properties_add_bool(
-        repo_props, "untracked_files", "Account For Untracked Files");
 
     obs_properties_add_button(
         repo_props, "test_button", "Test Max Size", toggleTestCallback);
@@ -627,10 +612,8 @@ static obs_properties_t* git_stats_properties(void* unused) {
     obs_properties_remove_by_name(text1_props, "outline");
     obs_properties_remove_by_name(text1_props, "antialiasing");
     obs_properties_add_bool(text1_props, "insertion_symbol", "+ Symbol");
-    obs_data_set_default_int(
-        isSettings, "color1", 0xFF00FF00);
-    obs_data_set_default_int(
-        isSettings, "color1", 0xFF00FF00);
+    obs_data_set_default_int(isSettings, "color1", 0xFF00FF00);
+    obs_data_set_default_int(isSettings, "color1", 0xFF00FF00);
     obs_properties_add_group(
         props, "insertion_properties", "Insertion Settings",
         OBS_GROUP_CHECKABLE, text1_props);

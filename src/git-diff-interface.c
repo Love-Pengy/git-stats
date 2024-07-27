@@ -161,58 +161,6 @@ long getDeletionNumber(char* diffString) {
     return (atol(amt));
 }
 
-void createUntrackedFilesHM(struct gitData* data) {
-    FILE* fp;
-    char filename[1000];
-    char entirePath[1024];
-
-    for (int i = 0; i < data->numTrackedFiles; i++) {
-        int commandLength =
-            (strlen("/usr/bin/git -C ") + strlen(data->trackedPaths[i]) +
-             strlen(" ls-files --others --exclude-standard") + 1);
-        errno = 0;
-        char* command = malloc(sizeof(char) * (commandLength + 1));
-        if (errno) {
-            perror("git-diff-interface(createUntrackedFilesHM)");
-            obs_log(LOG_WARNING, "CreateUntrackedFiles: %s", strerror(errno));
-            continue;
-        }
-        command[0] = '\0';
-
-        snprintf(
-            command, commandLength + 1, "%s%s%s", "/usr/bin/git -C ",
-            data->trackedPaths[i], " ls-files --others --exclude-standard");
-
-        fp = popen(command, "r");
-        free(command);
-        if (fp == NULL) {
-            continue;
-        }
-
-        while (fgets(filename, sizeof(filename), fp)) {
-            trailingNewlineDestroyer(filename);
-
-            if (!(data->trackedPaths[i][strlen(data->trackedPaths[i]) - 1] ==
-                  '/')) {
-                snprintf(
-                    entirePath,
-                    (strlen(filename) + strlen(data->trackedPaths[i]) + 2),
-                    "%s/%s", data->trackedPaths[i], filename);
-            }
-            else {
-                snprintf(
-                    entirePath,
-                    (strlen(filename) + strlen(data->trackedPaths[i]) + 1),
-                    "%s%s", data->trackedPaths[i], filename);
-            }
-            addElementHM(
-                &(data->untracked), entirePath,
-                createUntrackedFile(entirePath));
-        }
-        pclose(fp);
-    }
-}
-
 char* formatEndPathChar(char* formatee) {
     errno = 0;
     char* output = malloc(sizeof(char) * strlen(formatee) + 3);
@@ -260,8 +208,7 @@ bool checkPath(char* path) {
     errno = 0;
     buffer = malloc(sizeof(char) * (strlen(path) + 8));
     if (errno) {
-        perror("git-diff-interface(checkPath)");
-        obs_log(LOG_ERROR, "CheckPath: %s", strerror(errno));
+        obs_log(LOG_ERROR, "%s", strerror(errno));
         return (false);
     }
     buffer[0] = '\0';
@@ -280,7 +227,7 @@ bool checkPath(char* path) {
     dptr = opendir(buffer);
     if (errno) {
         perror("git-diff-interface(checkPath)");
-        obs_log(LOG_ERROR, "CheckPath: %s: %s", strerror(errno), buffer);
+        obs_log(LOG_ERROR, "CheckPath: %s: OG: %s, NEW: %s", strerror(errno), path, buffer);
         free(buffer);
         if (fixedPath) {
             free(fixedPath);
@@ -365,6 +312,7 @@ void addGitRepoDir(struct gitData* data, char* repoDirPath) {
     if (repoDirPath[strlen(repoDirPath) - 1] != '/') {
         fixedRepoDirPath = formatEndPathChar(repoDirPath);
         strcpy(buffer, fixedRepoDirPath);
+        printf("TEST: %s\n", buffer);
     }
     else {
         strcpy(buffer, repoDirPath);
@@ -431,7 +379,7 @@ void addGitRepoDir(struct gitData* data, char* repoDirPath) {
             snprintf(
                 tmpFilePath,
                 (strlen(fixedRepoDirPath) + strlen(dirStruct->d_name) + 1),
-                "%s%s", repoDirPath, dirStruct->d_name);
+                "%s%s", fixedRepoDirPath, dirStruct->d_name);
         }
 
         if (checkPath(tmpFilePath)) {

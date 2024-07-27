@@ -221,7 +221,13 @@ files bool from a ticked state~~
     - seems like I just have to turn them on because they are not automatically turned on when you fork a repo 
 - test the build on a different env (prolly arch peecee)
 
-## Refactor Notes
+## NEW DIRECTION
+- remove untracked files 
+- get a stable release
+- change mallocs and frees to their "b" counter parts 
+- remove all memory leaks 
+- figure out a better way to do untracked files
+- cap updates to 1 second
 
 ## Formatting TODO
 

@@ -6,7 +6,6 @@
 
 // struct obs_source_info git_stats_source;
 struct gitData {
-    hashMap untracked;
     char** trackedPaths;
     int numTrackedFiles;
     bool insertionEnabled;

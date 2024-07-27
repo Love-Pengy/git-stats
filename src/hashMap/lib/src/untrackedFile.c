@@ -64,8 +64,8 @@ void copyUntrackedFile(untrackedFile* dest, untrackedFile* src) {
 }
 
 struct tm* getModifiedTime(char* path) {
-    if(!path){
-        return(NULL);
+    if (!path) {
+        return (NULL);
     }
     struct stat attr;
     char* copy = malloc(sizeof(char) * (strlen(path) + 1));
@@ -91,7 +91,7 @@ struct tm* getModifiedTime(char* path) {
 
 void freeUntrackedFile(untrackedFile* file) {
     if (*file) {
-        //free(&((*file)->lastEdited));
+        // free(&((*file)->lastEdited));
         free((*file)->path);
         (*file)->path = NULL;
         free(*file);
@@ -134,7 +134,7 @@ long getLinesAdded(untrackedFile file) { return (file->linesAdded); }
 
 untrackedFile createUntrackedFile(char* filePath) {
     untrackedFile output = malloc(sizeof(struct fileType));
-    output->path = malloc(sizeof(char) * strlen(filePath));
+    output->path = malloc(sizeof(char) * strlen(filePath) + 1);
     output->path[0] = '\0';
     snprintf(output->path, strlen(filePath) + 1, "%s", filePath);
     // output->lastEdited = malloc(sizeof(struct tm));
@@ -149,6 +149,9 @@ void updateUntrackedFile(untrackedFile* file) {
     }
     // convert tm structs into time_t so I can use difftime
     time_t time1 = mktime(&((*file)->lastEdited));
+    if (!(*file)->path) {
+        return;
+    }
     struct tm* newTime = (getModifiedTime((*file)->path));
     time_t time2 = mktime(newTime);
     // if it hasnt been updates
