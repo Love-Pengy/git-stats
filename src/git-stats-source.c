@@ -63,8 +63,8 @@ static void *git_stats_create(obs_data_t *settings, obs_source_t *source)
 	info->data->deleted = 0;
 	info->data->insertionEnabled = false;
 	info->data->deletionEnabled = false;
-	// malloc 8 bytes for unicode character
-	info->data->overloadChar = malloc(16);
+	// bmalloc 8 bytes for unicode character
+	info->data->overloadChar = bmalloc(16);
 	info->data->overloadChar[0] = '\0';
 	strncpy(info->data->overloadChar, DEFAULT_OVERLOAD_CHAR,
 		strlen(DEFAULT_OVERLOAD_CHAR) + 1);
@@ -85,7 +85,7 @@ static void *git_stats_create(obs_data_t *settings, obs_source_t *source)
 	return (info);
 }
 
-// free up the source and its data
+// bfree up the source and its data
 static void git_stats_destroy(void *data)
 {
 	struct gitStatsInfo *info = data;
@@ -101,11 +101,11 @@ static void git_stats_destroy(void *data)
 	obs_source_release(info->deletionSource);
 	info->deletionSource = NULL;
 
-	free(info->data->overloadChar);
+	bfree(info->data->overloadChar);
 	info->data->overloadChar = NULL;
 
 	for (int i = 0; i < info->data->numTrackedFiles; i++) {
-		free(info->data->trackedPaths[i]);
+		bfree(info->data->trackedPaths[i]);
 	}
 
 	bfree(info->data);
@@ -204,7 +204,7 @@ static void git_stats_update(void *data, obs_data_t *settings)
 			obs_data_get_string(settings, "overload_char"));
 		if (unicode) {
 			strcpy(info->data->overloadChar, unicode);
-			free(unicode);
+			bfree(unicode);
 		} else {
 			strncpy(info->data->overloadChar, DEFAULT_OVERLOAD_CHAR,
 				strlen(DEFAULT_OVERLOAD_CHAR) + 1);
@@ -241,12 +241,12 @@ static void git_stats_update(void *data, obs_data_t *settings)
 	} else {
 		if (info->data->trackedPaths) {
 			for (int i = 0; i < info->data->numTrackedFiles; i++) {
-				free(info->data->trackedPaths[i]);
+				bfree(info->data->trackedPaths[i]);
 				info->data->trackedPaths[i] = NULL;
 			}
 		} else {
 			info->data->trackedPaths =
-				malloc(sizeof(char *) * MAXNUMPATHS);
+				bmalloc(sizeof(char *) * MAXNUMPATHS);
 		}
 		info->data->numTrackedFiles = 0;
 		for (size_t i = 0; i < obs_data_array_count(dirArray); i++) {
@@ -255,7 +255,7 @@ static void git_stats_update(void *data, obs_data_t *settings)
 				obs_data_get_string(currItem, "value");
 			errno = 0;
 			info->data->trackedPaths[i] =
-				malloc(sizeof(char) * strlen(currVal) + 1);
+				bmalloc(sizeof(char) * strlen(currVal) + 1);
 			if (errno) {
 				obs_log(LOG_ERROR, "Singular Update Failed: %s",
 					strerror(errno));
@@ -324,10 +324,10 @@ static void git_stats_tick(void *data, float seconds)
 		if (testMode) {
 			int numOverload = MAX_OVERLOAD;
 			errno = 0;
-			char *overloadString = malloc(
+			char *overloadString = bmalloc(
 				sizeof(char) * (MB_CUR_MAX * numOverload));
 			if (errno) {
-				obs_log(LOG_ERROR, "Malloc Failed");
+				obs_log(LOG_ERROR, "bmalloc Failed");
 				return;
 			}
 			overloadString[0] = ' ';
@@ -359,8 +359,8 @@ static void git_stats_tick(void *data, float seconds)
 				 overloadValueString);
 			obs_data_set_string(dsSettings, "text", buffer);
 			obs_source_update(info->deletionSource, dsSettings);
-			free(overloadValueString);
-			free(overloadString);
+			bfree(overloadValueString);
+			bfree(overloadString);
 			return;
 		}
 		if (info->data->trackedPaths == NULL) {
@@ -416,21 +416,21 @@ static void git_stats_tick(void *data, float seconds)
 			char *overloadString = NULL;
 			if (!numOverload) {
 				errno = 0;
-				overloadString = malloc(sizeof(char) * 2);
+				overloadString = bmalloc(sizeof(char) * 2);
 
 				if (errno) {
-					obs_log(LOG_ERROR, "Malloc Failed");
+					obs_log(LOG_ERROR, "bmalloc Failed");
 					return;
 				}
 				overloadString[0] = '\0';
 			} else {
 				errno = 0;
-				overloadString = malloc(
+				overloadString = bmalloc(
 					sizeof(char) *
 					(strlen(info->data->overloadChar) *
 					 numOverload));
 				if (errno) {
-					obs_log(LOG_ERROR, "Malloc Failed");
+					obs_log(LOG_ERROR, "bmalloc Failed");
 					return;
 				}
 				overloadString[1] = '\0';
@@ -464,8 +464,8 @@ static void git_stats_tick(void *data, float seconds)
 				obs_source_update(info->insertionSource,
 						  isSettings);
 			}
-			free(valueString);
-			free(overloadString);
+			bfree(valueString);
+			bfree(overloadString);
 		} else {
 			char outputBuffer[100] = "\0";
 			snprintf(outputBuffer, strlen("") + 1, "%s", "");
@@ -483,20 +483,20 @@ static void git_stats_tick(void *data, float seconds)
 			char *overloadString = NULL;
 			if (!numOverload) {
 				errno = 0;
-				overloadString = malloc(sizeof(char) * 2);
+				overloadString = bmalloc(sizeof(char) * 2);
 				if (errno) {
-					obs_log(LOG_ERROR, "Malloc Failed");
+					obs_log(LOG_ERROR, "bmalloc Failed");
 					return;
 				}
 				overloadString[0] = '\0';
 			} else {
 				errno = 0;
-				overloadString = malloc(
+				overloadString = bmalloc(
 					sizeof(char) *
 					(strlen(info->data->overloadChar) *
 					 numOverload));
 				if (errno) {
-					obs_log(LOG_ERROR, "Malloc Failed");
+					obs_log(LOG_ERROR, "bmalloc Failed");
 					return;
 				}
 				overloadString[1] = '\0';
@@ -509,7 +509,7 @@ static void git_stats_tick(void *data, float seconds)
 			char spaces[7] = "";
 			char *insertionValueString = ltoa(insertionValue);
 			int deletionSize = strlen(insertionValueString) + 2;
-			free(insertionValueString);
+			bfree(insertionValueString);
 			for (int i = 0; i < deletionSize; i++) {
 				spaces[i] = ' ';
 				spaces[i + 1] = '\0';
@@ -540,8 +540,8 @@ static void git_stats_tick(void *data, float seconds)
 				obs_source_update(info->deletionSource,
 						  dsSettings);
 			}
-			free(deletionValueString);
-			free(overloadString);
+			bfree(deletionValueString);
+			bfree(overloadString);
 		} else {
 			char spaces[7] = "";
 			int deletionSize = strlen(ltoa(info->data->added)) + 2;

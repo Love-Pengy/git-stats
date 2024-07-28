@@ -224,10 +224,10 @@ files bool from a ticked state~~
 ## NEW DIRECTION
 - ~~remove untracked files~~ 
 - ~~get a stable release~~
-- make plugin update instantly 
-- change mallocs and frees to their "b" counter parts 
+- ~~change mallocs and frees to their "b" counter parts~~ 
 - cap updates to 1 second
 - remove all memory leaks 
+- make plugin update instantly 
 - figure out a better way to do untracked files
 
 ### NEW DIRECTION DEBUGS

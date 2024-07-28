@@ -15,7 +15,7 @@ void obs_log(int log_level, const char *format, ...)
 {
 	size_t length = 4 + strlen(PLUGIN_NAME) + strlen(format);
 
-	char *template = malloc(length + 1);
+	char *template = bmalloc(length + 1);
 
 	snprintf(template, length, "[%s] %s", PLUGIN_NAME, format);
 
@@ -25,7 +25,7 @@ void obs_log(int log_level, const char *format, ...)
 	blogva(log_level, template, args);
 	va_end(args);
 
-	free(template);
+	bfree(template);
 }
 
 char *ltoa(long input)
@@ -35,7 +35,7 @@ char *ltoa(long input)
 	//  divides by a multiple without being a fraction
 	long currProduct = 1;
 	int size = 0;
-	char *output = malloc(sizeof(char) * 22);
+	char *output = bmalloc(sizeof(char) * 22);
 	bool entered = false;
 	output[0] = '\0';
 	if (input == 0) {
@@ -96,9 +96,9 @@ bool checkRepoExists(char **repos, int amtRepos, char *checkPath)
 // extracts first unicode character from a given string
 char *extractUnicode(const char *input)
 {
-	char *buff = malloc(sizeof(char) * MB_CUR_MAX);
+	char *buff = bmalloc(sizeof(char) * MB_CUR_MAX);
 	buff[0] = '\0';
-	char *inputCpy = malloc(sizeof(char) * (strlen(input) + 2));
+	char *inputCpy = bmalloc(sizeof(char) * (strlen(input) + 2));
 	inputCpy[0] = '\0';
 	strncpy(inputCpy, input, strlen(input) + 1);
 	char32_t specChar;
@@ -107,7 +107,7 @@ char *extractUnicode(const char *input)
 
 	if (!locale) {
 		obs_log(LOG_ERROR, "Locale Could Not Be Set");
-		free(buff);
+		bfree(buff);
 		return (NULL);
 	}
 	memset(&mbs, 0, sizeof(mbs));
@@ -124,12 +124,12 @@ char *extractUnicode(const char *input)
 	}
 	// ASSUMED: if size = 1 then its a normal character not a nerdfont character
 	else if (size == 1) {
-		free(buff);
+		bfree(buff);
 		inputCpy[1] = '\0';
 		return (inputCpy);
 	}
 	// ensure that string gets terminated in the correct spot
 	buff[size] = '\0';
-	free(inputCpy);
+	bfree(inputCpy);
 	return (buff);
 }
