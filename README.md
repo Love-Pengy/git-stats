@@ -19,3 +19,7 @@ This plugin is an enhanced implementation of the [git-linestats-widget](https://
 
 - Linux System
 - A Nerd Font (preferably monospaced for better alignment)
+
+## Future Features
+- Untracked Files
+- Allow For Ignoring of binaries and hidden files

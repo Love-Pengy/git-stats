@@ -222,12 +222,13 @@ files bool from a ticked state~~
 - test the build on a different env (prolly arch peecee)
 
 ## NEW DIRECTION
-- remove untracked files 
-- get a stable release
+- ~~remove untracked files~~ 
+- ~~get a stable release~~
+- make plugin update instantly 
 - change mallocs and frees to their "b" counter parts 
+- cap updates to 1 second
 - remove all memory leaks 
 - figure out a better way to do untracked files
-- cap updates to 1 second
 
 ## Formatting TODO
 
