@@ -227,7 +227,9 @@ bool checkPath(char* path) {
     dptr = opendir(buffer);
     if (errno) {
         perror("git-diff-interface(checkPath)");
-        obs_log(LOG_ERROR, "CheckPath: %s: OG: %s, NEW: %s", strerror(errno), path, buffer);
+        obs_log(
+            LOG_ERROR, "CheckPath: %s: OG: %s, NEW: %s", strerror(errno), path,
+            buffer);
         free(buffer);
         if (fixedPath) {
             free(fixedPath);
