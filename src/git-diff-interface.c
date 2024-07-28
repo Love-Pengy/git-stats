@@ -11,8 +11,6 @@
 #include <string.h>
 #include <sys/types.h>
 
-#include "./hashMap/include/hashMap.h"
-#include "./hashMap/lib/include/untrackedFile.h"
 #include "./support.h"
 
 #define MAXOUTPUTSIZE 1024

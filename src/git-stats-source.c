@@ -7,7 +7,6 @@
 #include <stdlib.h>
 
 #include "./git-diff-interface.h"
-#include "./hashMap/include/hashMap.h"
 #include "support.h"
 
 #define OVERLOAD_VAL 9999
@@ -591,7 +590,7 @@ static obs_properties_t *git_stats_properties(void *unused)
 					 OBS_EDITABLE_LIST_TYPE_FILES, NULL,
 					 NULL);
 
-	obs_properties_add_int(repo_props, "delay", "Delay Between Updates", 0,
+	obs_properties_add_int(repo_props, "delay", "Delay Between Updates", 1,
 			       INT_MAX, 1);
 
 	obs_properties_add_text(repo_props, "overload_char",

@@ -2,7 +2,6 @@
 #include <obs-module.h>
 #include <obs-source.h>
 
-#include "./hashMap/include/hashMap.h"
 
 // struct obs_source_info git_stats_source;
 struct gitData {
