@@ -1,10 +1,10 @@
 #pragma once
 
-typedef struct passType* boardingPass;
+typedef struct passType *boardingPass;
 
-boardingPass createBoardingPass(int, char*, char*);
-char* boardingPassToString(boardingPass);
+boardingPass createBoardingPass(int, char *, char *);
+char *boardingPassToString(boardingPass);
 int getIdNum(boardingPass);
-char* getFirstName(boardingPass);
-char* getLastName(boardingPass);
-void copyBoardingPass(boardingPass*, boardingPass*);
+char *getFirstName(boardingPass);
+char *getLastName(boardingPass);
+void copyBoardingPass(boardingPass *, boardingPass *);

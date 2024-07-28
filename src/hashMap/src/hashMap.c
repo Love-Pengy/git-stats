@@ -6,62 +6,68 @@
 #include "../lib/include/hashTable.h"
 
 struct hashMapType {
-    hashTable table;
+	hashTable table;
 };
 
-hashMap createHashMap(void) {
-    hashMap output = malloc(sizeof(struct hashMapType));
-    output->table = createHT();
-    return (output);
+hashMap createHashMap(void)
+{
+	hashMap output = malloc(sizeof(struct hashMapType));
+	output->table = createHT();
+	return (output);
 }
 
-long getLinesAddedHM(hashMap* map) {
-    return (getLinesAddedHT(&((*map)->table)));
+long getLinesAddedHM(hashMap *map)
+{
+	return (getLinesAddedHT(&((*map)->table)));
 }
 
-void updateValueHM(hashMap* map) { autoUpdateValuesHT(&((*map)->table)); }
-
-void addElementHM(hashMap* map, char* key, untrackedFile value) {
-    if ((*map) == NULL) {
-    }
-    else {
-        if (!findValueHT((*map)->table, key)) {
-            addElementHT(&((*map)->table), key, value);
-        }
-        else {
-            updateValueHT(&((*map)->table), key, value);
-        }
-    }
+void updateValueHM(hashMap *map)
+{
+	autoUpdateValuesHT(&((*map)->table));
 }
 
-void removeElementHM(hashMap* map, char* key) {
-    if ((*map) == NULL) {
-    }
-    else {
-        removeElementHT(&((*map)->table), key);
-    }
+void addElementHM(hashMap *map, char *key, untrackedFile value)
+{
+	if ((*map) == NULL) {
+	} else {
+		if (!findValueHT((*map)->table, key)) {
+			addElementHT(&((*map)->table), key, value);
+		} else {
+			updateValueHT(&((*map)->table), key, value);
+		}
+	}
 }
 
-untrackedFile findValueHM(hashMap map, char* key) {
-    if (map == NULL) {
-        return (NULL);
-    }
-    return (findValueHT((map)->table, key));
+void removeElementHM(hashMap *map, char *key)
+{
+	if ((*map) == NULL) {
+	} else {
+		removeElementHT(&((*map)->table), key);
+	}
 }
 
-void printHM(hashMap map) {
-    if (map == NULL) {
-        printf("{ EMPTY }\n");
-    }
-    else {
-        printHT(map->table);
-    }
+untrackedFile findValueHM(hashMap map, char *key)
+{
+	if (map == NULL) {
+		return (NULL);
+	}
+	return (findValueHT((map)->table, key));
 }
 
-void freeHM(hashMap* map) {
-    if (*map) {
-        freeHashTable(&((*map)->table));
-        free(*map);
-        (*map) = NULL;
-    }
+void printHM(hashMap map)
+{
+	if (map == NULL) {
+		printf("{ EMPTY }\n");
+	} else {
+		printHT(map->table);
+	}
+}
+
+void freeHM(hashMap *map)
+{
+	if (*map) {
+		freeHashTable(&((*map)->table));
+		free(*map);
+		(*map) = NULL;
+	}
 }
