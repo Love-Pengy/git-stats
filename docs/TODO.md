@@ -230,6 +230,9 @@ files bool from a ticked state~~
 - remove all memory leaks 
 - figure out a better way to do untracked files
 
+### NEW DIRECTION DEBUGS
+- make numbers not dissapear on update
+
 ## Formatting TODO
 
 - ~~pick either camel case or snake case~~
