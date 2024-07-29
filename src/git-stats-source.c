@@ -19,6 +19,9 @@ static bool testMode = false;
 // global for the initial startup
 static int INIT_RUN = 1;
 
+// global for instant update
+static bool FORCE_UPDATE = false;
+
 static void git_stats_update(void *, obs_data_t *);
 
 static void git_stats_get_defaults(obs_data_t *);
@@ -60,11 +63,15 @@ static void *git_stats_create(obs_data_t *settings, obs_source_t *source)
 	info->data->numTrackedFiles = 0;
 	info->data->added = 0;
 	info->data->deleted = 0;
-	info->data->insertionEnabled = false;
-	info->data->deletionEnabled = false;
+	info->data->insertionEnabled = true;
+	info->data->deletionEnabled = true;
+    info->data->insertionSymbolEnabled = true;
+    info->data->deletionSymbolEnabled = true;
 	// bmalloc 8 bytes for unicode character
 	info->data->overloadChar = bmalloc(16);
 	info->data->overloadChar[0] = '\0';
+	info->data->numUntrackedFiles = 0;
+	info->data->untrackedFiles = NULL;
 	strncpy(info->data->overloadChar, DEFAULT_OVERLOAD_CHAR,
 		strlen(DEFAULT_OVERLOAD_CHAR) + 1);
 
@@ -218,11 +225,21 @@ static void git_stats_update(void *data, obs_data_t *settings)
 	} else {
 		info->data->insertionEnabled = true;
 	}
+	if (!obs_data_get_bool(settings, "insertion_symbol")) {
+		info->data->insertionSymbolEnabled = false;
+	} else {
+		info->data->insertionSymbolEnabled = true;
+	}
 
 	if (!obs_data_get_bool(settings, "deletion_properties")) {
 		info->data->deletionEnabled = false;
 	} else {
 		info->data->deletionEnabled = true;
+	}
+	if (!obs_data_get_bool(settings, "deletion_symbol")) {
+		info->data->deletionSymbolEnabled = false;
+	} else {
+		info->data->deletionSymbolEnabled = true;
 	}
 	obs_data_array_t *dirArray =
 		obs_data_get_array(gsSettings, "single_repos");
@@ -290,6 +307,7 @@ static void git_stats_update(void *data, obs_data_t *settings)
 	if (dsSettings) {
 		obs_data_release(dsSettings);
 	}
+    FORCE_UPDATE = true;
 }
 
 // render out the source
@@ -311,7 +329,7 @@ static void git_stats_tick(void *data, float seconds)
 	}
 
 	info->time_passed += seconds;
-	if (info->time_passed > info->data->delayAmount || INIT_RUN) {
+	if (info->time_passed > info->data->delayAmount || INIT_RUN || FORCE_UPDATE) {
 		obs_data_t *isSettings =
 			obs_source_get_settings(info->insertionSource);
 		obs_data_t *dsSettings =
@@ -319,6 +337,7 @@ static void git_stats_tick(void *data, float seconds)
 		obs_data_t *gsSettings =
 			obs_source_get_settings(info->gitSource);
 		INIT_RUN &= 0;
+        FORCE_UPDATE = false;
 		info->time_passed = 0;
 		if (testMode) {
 			int numOverload = MAX_OVERLOAD;
@@ -364,8 +383,7 @@ static void git_stats_tick(void *data, float seconds)
 		}
 		if (info->data->trackedPaths == NULL) {
 			if (info->data->insertionEnabled) {
-				if (obs_data_get_bool(gsSettings,
-						      "insertion_symbol")) {
+				if (info->data->insertionSymbolEnabled) {
 					obs_data_set_string(isSettings, "text",
 							    "\n+0");
 					obs_source_update(info->insertionSource,
@@ -382,8 +400,7 @@ static void git_stats_tick(void *data, float seconds)
 						  isSettings);
 			}
 			if (info->data->deletionEnabled) {
-				if (obs_data_get_bool(gsSettings,
-						      "deletion_symbol")) {
+				if (info->data->deletionSymbolEnabled) {
 					obs_data_set_string(dsSettings, "text",
 							    "\n   -0");
 					obs_source_update(info->deletionSource,
@@ -442,7 +459,7 @@ static void git_stats_tick(void *data, float seconds)
 
 			char outputBuffer[100] = "\0";
 			char *valueString = ltoa(value);
-			if (obs_data_get_bool(gsSettings, "insertion_symbol")) {
+			if (info->data->insertionSymbolEnabled) {
 				snprintf(outputBuffer,
 					 strlen(overloadString) +
 						 strlen(valueString) + 3,
@@ -514,7 +531,7 @@ static void git_stats_tick(void *data, float seconds)
 				spaces[i + 1] = '\0';
 			}
 			char *deletionValueString = ltoa(deletionValue);
-			if (obs_data_get_bool(gsSettings, "deletion_symbol")) {
+			if (info->data->deletionSymbolEnabled) {
 				snprintf(outputBuffer,
 					 strlen(overloadString) +
 						 (strlen(spaces) * 2) +

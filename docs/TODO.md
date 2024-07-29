@@ -225,13 +225,14 @@ files bool from a ticked state~~
 - ~~remove untracked files~~ 
 - ~~get a stable release~~
 - ~~change mallocs and frees to their "b" counter parts~~ 
-- cap updates to 1 second
+- ~~cap updates to 1 second~~
+- ~~make plugin update instantly~~ 
 - remove all memory leaks 
-- make plugin update instantly 
 - figure out a better way to do untracked files
 
 ### NEW DIRECTION DEBUGS
-- make numbers not dissapear on update
+- ~~make numbers not dissapear on update~~
+- make text sources used in plugin not show up in sources list 
 
 ## Formatting TODO
 
