@@ -220,27 +220,11 @@ static void git_stats_update(void *data, obs_data_t *settings)
 			strlen(DEFAULT_OVERLOAD_CHAR) + 1);
 	}
 
-	if (!obs_data_get_bool(settings, "insertion_properties")) {
-		info->data->insertionEnabled = false;
-	} else {
-		info->data->insertionEnabled = true;
-	}
-	if (!obs_data_get_bool(settings, "insertion_symbol")) {
-		info->data->insertionSymbolEnabled = false;
-	} else {
-		info->data->insertionSymbolEnabled = true;
-	}
+	info->data->insertionEnabled = obs_data_get_bool(settings, "insertion_properties");
+	info->data->insertionSymbolEnabled = obs_data_get_bool(settings, "insertion_symbol");
+	info->data->deletionEnabled = obs_data_get_bool(settings, "deletion_properties");
+	info->data->deletionSymbolEnabled = obs_data_get_bool(settings, "deletion_symbol");
 
-	if (!obs_data_get_bool(settings, "deletion_properties")) {
-		info->data->deletionEnabled = false;
-	} else {
-		info->data->deletionEnabled = true;
-	}
-	if (!obs_data_get_bool(settings, "deletion_symbol")) {
-		info->data->deletionSymbolEnabled = false;
-	} else {
-		info->data->deletionSymbolEnabled = true;
-	}
 	obs_data_array_t *dirArray =
 		obs_data_get_array(gsSettings, "single_repos");
 
