@@ -16,6 +16,9 @@
 // global for putting source in "max number" mode
 static bool testMode = false;
 
+// default font obj
+static obs_data_t *defaultFont;
+
 // global for the initial startup
 static int INIT_RUN = 1;
 
@@ -65,13 +68,20 @@ static void *git_stats_create(obs_data_t *settings, obs_source_t *source)
 	info->data->deleted = 0;
 	info->data->insertionEnabled = true;
 	info->data->deletionEnabled = true;
-    info->data->insertionSymbolEnabled = true;
-    info->data->deletionSymbolEnabled = true;
-	// bmalloc 8 bytes for unicode character
+	info->data->insertionSymbolEnabled = true;
+	info->data->deletionSymbolEnabled = true;
+	// bmalloc 8 bytes for each unicode character
 	info->data->overloadChar = bmalloc(16);
 	info->data->overloadChar[0] = '\0';
 	info->data->numUntrackedFiles = 0;
 	info->data->untrackedFiles = NULL;
+
+	defaultFont = obs_data_create();
+	obs_data_set_default_string(defaultFont, "face", "DejaVu Sans Mono");
+	obs_data_set_default_int(defaultFont, "size", 256);
+	obs_data_set_default_int(defaultFont, "flags", 0);
+	obs_data_set_default_string(defaultFont, "style", "");
+
 	strncpy(info->data->overloadChar, DEFAULT_OVERLOAD_CHAR,
 		strlen(DEFAULT_OVERLOAD_CHAR) + 1);
 
@@ -112,8 +122,23 @@ static void git_stats_destroy(void *data)
 
 	for (int i = 0; i < info->data->numTrackedFiles; i++) {
 		bfree(info->data->trackedPaths[i]);
+		info->data->trackedPaths[i] = NULL;
+	}
+	for (int i = 0; i < info->data->numUntrackedFiles; i++) {
+		bfree(info->data->untrackedFiles[i]);
+		info->data->untrackedFiles[i] = NULL;
 	}
 
+	obs_data_release(defaultFont);
+
+	if (info->data->untrackedFiles) {
+		bfree(info->data->untrackedFiles);
+		info->data->untrackedFiles = NULL;
+	}
+	if (info->data->trackedPaths) {
+		bfree(info->data->trackedPaths);
+		info->data->trackedPaths = NULL;
+	}
 	bfree(info->data);
 	info->data = NULL;
 
@@ -166,12 +191,7 @@ static void git_stats_get_defaults(obs_data_t *settings)
 
 	// make DejaVu Sans Mono the default because sans serif is not mono and
 	// doesn't require nerd fonts installed
-	obs_data_t *font_obj = obs_data_create();
-	obs_data_set_default_string(font_obj, "face", "DejaVu Sans Mono");
-	obs_data_set_default_int(font_obj, "size", 256);
-	obs_data_set_default_int(font_obj, "flags", 0);
-	obs_data_set_default_string(font_obj, "style", "");
-	obs_data_set_default_obj(settings, "font", font_obj);
+	obs_data_set_default_obj(settings, "font", defaultFont);
 
 	// group settings
 	obs_data_set_default_bool(settings, "insertion_properties", true);
@@ -182,7 +202,6 @@ static void git_stats_get_defaults(obs_data_t *settings)
 static void git_stats_update(void *data, obs_data_t *settings)
 {
 	struct gitStatsInfo *info = data;
-	UNUSED_PARAMETER(data);
 
 	// copy settings from dummy property to the deletion text source
 	obs_data_t *insertionFont = obs_data_get_obj(settings, "font");
@@ -244,46 +263,40 @@ static void git_stats_update(void *data, obs_data_t *settings)
 	obs_data_array_t *dirArray =
 		obs_data_get_array(gsSettings, "single_repos");
 
-	if (!obs_data_array_count(dirArray) &&
-	    (obs_data_get_string(settings, "repositories_directory") == NULL ||
-	     !strcmp(obs_data_get_string(settings, "repositories_directory"),
-		     ""))) {
-		obs_data_set_string(isSettings, "text", "\n+0");
-		obs_data_set_string(isSettings, "text", "\n   -0");
-		obs_source_update(info->insertionSource, isSettings);
-		obs_source_update(info->deletionSource, dsSettings);
-		info->data->trackedPaths = NULL;
-		info->data->numTrackedFiles = 0;
-	} else {
-		if (info->data->trackedPaths) {
-			for (int i = 0; i < info->data->numTrackedFiles; i++) {
-				bfree(info->data->trackedPaths[i]);
-				info->data->trackedPaths[i] = NULL;
-			}
-		} else {
-			info->data->trackedPaths =
-				bmalloc(sizeof(char *) * MAXNUMPATHS);
+	//free data if nothing specified before changing numtrackedfiles to 0
+	if (info->data->numTrackedFiles > 0) {
+		for (int i = 0; i < info->data->numTrackedFiles; i++) {
+			bfree(info->data->trackedPaths[i]);
+			info->data->trackedPaths[i] = NULL;
 		}
-		info->data->numTrackedFiles = 0;
-		for (size_t i = 0; i < obs_data_array_count(dirArray); i++) {
-			obs_data_t *currItem = obs_data_array_item(dirArray, i);
-			const char *currVal =
-				obs_data_get_string(currItem, "value");
-			errno = 0;
-			info->data->trackedPaths[i] =
-				bmalloc(sizeof(char) * strlen(currVal) + 1);
-			if (errno) {
-				obs_log(LOG_ERROR, "Singular Update Failed: %s",
-					strerror(errno));
-				info->data->trackedPaths[i] = NULL;
-				info->data->numTrackedFiles++;
-				continue;
-			}
-			strncpy(info->data->trackedPaths[i], currVal,
-				strlen(currVal) + 1);
-			info->data->numTrackedFiles++;
+	}
+	if (!info->data->trackedPaths) {
+		info->data->trackedPaths =
+			bmalloc(sizeof(char *) * MAXNUMPATHS);
+		for (int i = 0; i < MAXNUMPATHS; i++) {
+			info->data->trackedPaths[i] = NULL;
+		}
+	}
+	info->data->numTrackedFiles = 0;
+
+	for (size_t i = 0; i < obs_data_array_count(dirArray); i++) {
+		obs_data_t *currItem = obs_data_array_item(dirArray, i);
+		const char *currVal = obs_data_get_string(currItem, "value");
+		errno = 0;
+		info->data->trackedPaths[i] =
+			bmalloc(sizeof(char) * strlen(currVal) + 1);
+		if (errno) {
+			obs_log(LOG_ERROR, "Singular Update Failed: %s",
+				strerror(errno));
 			obs_data_release(currItem);
+			info->data->trackedPaths[i] = NULL;
+			info->data->numTrackedFiles++;
+			continue;
 		}
+		strncpy(info->data->trackedPaths[i], currVal,
+			strlen(currVal) + 1);
+		info->data->numTrackedFiles++;
+		obs_data_release(currItem);
 	}
 	obs_data_array_release(dirArray);
 	if (strcmp(obs_data_get_string(settings, "repositories_directory"),
@@ -307,16 +320,16 @@ static void git_stats_update(void *data, obs_data_t *settings)
 	if (dsSettings) {
 		obs_data_release(dsSettings);
 	}
-    FORCE_UPDATE = true;
+	FORCE_UPDATE = true;
 }
 
 // render out the source
 static void git_stats_render(void *data, gs_effect_t *effect)
 {
+	UNUSED_PARAMETER(effect);
 	struct gitStatsInfo *info = data;
 	obs_source_video_render(info->insertionSource);
 	obs_source_video_render(info->deletionSource);
-	UNUSED_PARAMETER(effect);
 }
 
 // update relevant real time data for the source (called each frame with the
@@ -327,9 +340,9 @@ static void git_stats_tick(void *data, float seconds)
 	if (!obs_source_showing(info->gitSource)) {
 		return;
 	}
-
 	info->time_passed += seconds;
-	if (info->time_passed > info->data->delayAmount || INIT_RUN || FORCE_UPDATE) {
+	if (info->time_passed > info->data->delayAmount || INIT_RUN ||
+	    FORCE_UPDATE) {
 		obs_data_t *isSettings =
 			obs_source_get_settings(info->insertionSource);
 		obs_data_t *dsSettings =
@@ -337,7 +350,7 @@ static void git_stats_tick(void *data, float seconds)
 		obs_data_t *gsSettings =
 			obs_source_get_settings(info->gitSource);
 		INIT_RUN &= 0;
-        FORCE_UPDATE = false;
+		FORCE_UPDATE = false;
 		info->time_passed = 0;
 		if (testMode) {
 			int numOverload = MAX_OVERLOAD;
@@ -346,6 +359,15 @@ static void git_stats_tick(void *data, float seconds)
 				sizeof(char) * (MB_CUR_MAX * numOverload));
 			if (errno) {
 				obs_log(LOG_ERROR, "bmalloc Failed");
+				if (isSettings) {
+					obs_data_release(isSettings);
+				}
+				if (dsSettings) {
+					obs_data_release(dsSettings);
+				}
+				if (gsSettings) {
+					obs_data_release(gsSettings);
+				}
 				return;
 			}
 			overloadString[0] = ' ';
@@ -379,6 +401,15 @@ static void git_stats_tick(void *data, float seconds)
 			obs_source_update(info->deletionSource, dsSettings);
 			bfree(overloadValueString);
 			bfree(overloadString);
+			if (gsSettings) {
+				obs_data_release(gsSettings);
+			}
+			if (isSettings) {
+				obs_data_release(isSettings);
+			}
+			if (dsSettings) {
+				obs_data_release(dsSettings);
+			}
 			return;
 		}
 		if (info->data->trackedPaths == NULL) {
@@ -417,6 +448,15 @@ static void git_stats_tick(void *data, float seconds)
 				obs_source_update(info->deletionSource,
 						  dsSettings);
 			}
+			if (gsSettings) {
+				obs_data_release(gsSettings);
+			}
+			if (isSettings) {
+				obs_data_release(isSettings);
+			}
+			if (dsSettings) {
+				obs_data_release(dsSettings);
+			}
 			return;
 		} else {
 			info->data->deleted = 0;
@@ -435,7 +475,17 @@ static void git_stats_tick(void *data, float seconds)
 				overloadString = bmalloc(sizeof(char) * 2);
 
 				if (errno) {
+					if (gsSettings) {
+						obs_data_release(gsSettings);
+					}
+					if (isSettings) {
+						obs_data_release(isSettings);
+					}
+					if (dsSettings) {
+						obs_data_release(dsSettings);
+					}
 					obs_log(LOG_ERROR, "bmalloc Failed");
+
 					return;
 				}
 				overloadString[0] = '\0';
@@ -447,6 +497,15 @@ static void git_stats_tick(void *data, float seconds)
 					 numOverload));
 				if (errno) {
 					obs_log(LOG_ERROR, "bmalloc Failed");
+					if (gsSettings) {
+						obs_data_release(gsSettings);
+					}
+					if (isSettings) {
+						obs_data_release(isSettings);
+					}
+					if (dsSettings) {
+						obs_data_release(dsSettings);
+					}
 					return;
 				}
 				overloadString[1] = '\0';
@@ -467,8 +526,6 @@ static void git_stats_tick(void *data, float seconds)
 					 valueString);
 				obs_data_set_string(isSettings, "text",
 						    outputBuffer);
-				obs_source_update(info->insertionSource,
-						  isSettings);
 			} else {
 				snprintf(outputBuffer,
 					 strlen(overloadString) +
@@ -477,8 +534,6 @@ static void git_stats_tick(void *data, float seconds)
 					 valueString);
 				obs_data_set_string(isSettings, "text",
 						    outputBuffer);
-				obs_source_update(info->insertionSource,
-						  isSettings);
 			}
 			bfree(valueString);
 			bfree(overloadString);
@@ -486,7 +541,6 @@ static void git_stats_tick(void *data, float seconds)
 			char outputBuffer[100] = "\0";
 			snprintf(outputBuffer, strlen("") + 1, "%s", "");
 			obs_data_set_string(isSettings, "text", outputBuffer);
-			obs_source_update(info->insertionSource, isSettings);
 		}
 		char outputBuffer[100] = "\0";
 		if (info->data->deletionEnabled) {
@@ -502,6 +556,15 @@ static void git_stats_tick(void *data, float seconds)
 				overloadString = bmalloc(sizeof(char) * 2);
 				if (errno) {
 					obs_log(LOG_ERROR, "bmalloc Failed");
+					if (isSettings) {
+						obs_data_release(isSettings);
+					}
+					if (dsSettings) {
+						obs_data_release(dsSettings);
+					}
+					if (gsSettings) {
+						obs_data_release(gsSettings);
+					}
 					return;
 				}
 				overloadString[0] = '\0';
@@ -513,6 +576,15 @@ static void git_stats_tick(void *data, float seconds)
 					 numOverload));
 				if (errno) {
 					obs_log(LOG_ERROR, "bmalloc Failed");
+					if (isSettings) {
+						obs_data_release(isSettings);
+					}
+					if (dsSettings) {
+						obs_data_release(dsSettings);
+					}
+					if (gsSettings) {
+						obs_data_release(gsSettings);
+					}
 					return;
 				}
 				overloadString[1] = '\0';
@@ -541,8 +613,6 @@ static void git_stats_tick(void *data, float seconds)
 					 spaces, deletionValueString);
 				obs_data_set_string(dsSettings, "text",
 						    outputBuffer);
-				obs_source_update(info->deletionSource,
-						  dsSettings);
 			} else {
 				snprintf(outputBuffer,
 					 strlen(overloadString) +
@@ -553,14 +623,13 @@ static void git_stats_tick(void *data, float seconds)
 					 spaces, deletionValueString);
 				obs_data_set_string(dsSettings, "text",
 						    outputBuffer);
-				obs_source_update(info->deletionSource,
-						  dsSettings);
 			}
 			bfree(deletionValueString);
 			bfree(overloadString);
 		} else {
 			char spaces[7] = "";
-			int deletionSize = strlen(ltoa(info->data->added)) + 2;
+			char *addedValue = ltoa(info->data->added);
+			int deletionSize = strlen(addedValue + 2);
 			for (int i = 0; i < deletionSize; i++) {
 				spaces[i] = ' ';
 				spaces[i + 1] = '\0';
@@ -568,11 +637,20 @@ static void git_stats_tick(void *data, float seconds)
 			snprintf(outputBuffer, strlen(spaces) + strlen(" ") + 1,
 				 "%s%s", spaces, " ");
 			obs_data_set_string(dsSettings, "text", outputBuffer);
-			obs_source_update(info->deletionSource, dsSettings);
+			bfree(addedValue);
 		}
-		obs_data_release(gsSettings);
-		obs_data_release(isSettings);
-		obs_data_release(dsSettings);
+
+		obs_source_update(info->deletionSource, dsSettings);
+		obs_source_update(info->insertionSource, isSettings);
+		if (gsSettings) {
+			obs_data_release(gsSettings);
+		}
+		if (isSettings) {
+			obs_data_release(isSettings);
+		}
+		if (dsSettings) {
+			obs_data_release(dsSettings);
+		}
 	}
 }
 
@@ -584,6 +662,7 @@ static bool toggleTestCallback(obs_properties_t *properties,
 	UNUSED_PARAMETER(buttonProps);
 	UNUSED_PARAMETER(data);
 	testMode ^= 1;
+	FORCE_UPDATE = true;
 	return (true);
 }
 

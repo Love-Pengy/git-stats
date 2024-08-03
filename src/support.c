@@ -2,13 +2,14 @@
 
 #include <locale.h>
 #include <obs-module.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <uchar.h>
 
 #include "git-diff-interface.h"
 const char *PLUGIN_NAME = "git-stats";
-const char *PLUGIN_VERSION = "0.0.0";
+const char *PLUGIN_VERSION = "0.0.2";
 int MAXNUMPATHS = 100;
 
 void obs_log(int log_level, const char *format, ...)

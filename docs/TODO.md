@@ -227,8 +227,12 @@ files bool from a ticked state~~
 - ~~change mallocs and frees to their "b" counter parts~~ 
 - ~~cap updates to 1 second~~
 - ~~make plugin update instantly~~ 
-- remove all memory leaks 
+- ~~remove all memory leaks~~ 
+- change source to the private version so it doesn't show up in the sources list
+- fix terrible failure messages
 - figure out a better way to do untracked files
+- center deletion number when insertion number is set as inactive
+- allow unicode specification as a string
 
 ### NEW DIRECTION DEBUGS
 - ~~make numbers not dissapear on update~~
