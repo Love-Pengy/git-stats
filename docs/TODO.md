@@ -235,8 +235,8 @@ files bool from a ticked state~~
 - ~~cap updates to 1 second~~
 - ~~make plugin update instantly~~ 
 - ~~remove all memory leaks~~ 
+- ~~fix terrible failure messages~~
 - change source to the private version so it doesn't show up in the sources list
-- fix terrible failure messages
     - maybe figure out if theres not a working way to change text to red on error
 - center deletion number when insertion number is set as inactive
 - allow unicode specification as a string

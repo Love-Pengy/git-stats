@@ -61,7 +61,13 @@ static void *git_stats_create(obs_data_t *settings, obs_source_t *source)
 	info->gitSource = source;
 
 	const char *text_source_id = "text_ft2_source_v2";
+	errno = 0;
 	info->data = bzalloc(sizeof(struct gitData));
+	if (errno) {
+		obs_log(LOG_ERROR, "%s (%d): %s", __FILE__, __LINE__,
+			strerror(errno));
+		exit(EXIT_FAILURE);
+	}
 	info->data->trackedPaths = NULL;
 	info->data->numTrackedFiles = 0;
 	info->data->added = 0;
@@ -70,8 +76,15 @@ static void *git_stats_create(obs_data_t *settings, obs_source_t *source)
 	info->data->deletionEnabled = true;
 	info->data->insertionSymbolEnabled = true;
 	info->data->deletionSymbolEnabled = true;
+	errno = 0;
 	// bmalloc 8 bytes for each unicode character
 	info->data->overloadChar = bmalloc(16);
+	if (errno) {
+		obs_log(LOG_ERROR, "%s (%d): %s", __FILE__, __LINE__,
+			strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
 	info->data->overloadChar[0] = '\0';
 	info->data->numUntrackedFiles = 0;
 	info->data->untrackedFiles = NULL;
@@ -98,7 +111,7 @@ static void *git_stats_create(obs_data_t *settings, obs_source_t *source)
 	git_stats_get_defaults(settings);
 	git_stats_update(info, settings);
 
-	obs_log(LOG_INFO, "Source Initialized");
+	obs_log(LOG_INFO, "Source Created");
 
 	return (info);
 }
@@ -261,8 +274,13 @@ static void git_stats_update(void *data, obs_data_t *settings)
 		}
 	}
 	if (!info->data->trackedPaths) {
+		errno = 0;
 		info->data->trackedPaths =
 			bmalloc(sizeof(char *) * MAXNUMPATHS);
+		if (errno) {
+			obs_log(LOG_ERROR, "%s (%d): %s", __FILE__, __LINE__,
+				strerror(errno));
+		}
 		for (int i = 0; i < MAXNUMPATHS; i++) {
 			info->data->trackedPaths[i] = NULL;
 		}
@@ -276,7 +294,7 @@ static void git_stats_update(void *data, obs_data_t *settings)
 		info->data->trackedPaths[i] =
 			bmalloc(sizeof(char) * strlen(currVal) + 1);
 		if (errno) {
-			obs_log(LOG_ERROR, "Singular Update Failed: %s",
+			obs_log(LOG_ERROR, "%s (%d): %s", __FILE__, __LINE__,
 				strerror(errno));
 			obs_data_release(currItem);
 			info->data->trackedPaths[i] = NULL;
@@ -348,7 +366,8 @@ static void git_stats_tick(void *data, float seconds)
 			char *overloadString = bmalloc(
 				sizeof(char) * (MB_CUR_MAX * numOverload));
 			if (errno) {
-				obs_log(LOG_ERROR, "bmalloc Failed");
+				obs_log(LOG_ERROR, "%s (%d): %s", __FILE__,
+					__LINE__, strerror(errno));
 				if (isSettings) {
 					obs_data_release(isSettings);
 				}
@@ -474,7 +493,9 @@ static void git_stats_tick(void *data, float seconds)
 					if (dsSettings) {
 						obs_data_release(dsSettings);
 					}
-					obs_log(LOG_ERROR, "bmalloc Failed");
+					obs_log(LOG_ERROR, "%s (%d): %s",
+						__FILE__, __LINE__,
+						strerror(errno));
 
 					return;
 				}
@@ -486,7 +507,9 @@ static void git_stats_tick(void *data, float seconds)
 					(strlen(info->data->overloadChar) *
 					 numOverload));
 				if (errno) {
-					obs_log(LOG_ERROR, "bmalloc Failed");
+					obs_log(LOG_ERROR, "%s (%d): %s",
+						__FILE__, __LINE__,
+						strerror(errno));
 					if (gsSettings) {
 						obs_data_release(gsSettings);
 					}
@@ -545,7 +568,9 @@ static void git_stats_tick(void *data, float seconds)
 				errno = 0;
 				overloadString = bmalloc(sizeof(char) * 2);
 				if (errno) {
-					obs_log(LOG_ERROR, "bmalloc Failed");
+					obs_log(LOG_ERROR, "%s (%d): %s",
+						__FILE__, __LINE__,
+						strerror(errno));
 					if (isSettings) {
 						obs_data_release(isSettings);
 					}
@@ -565,7 +590,9 @@ static void git_stats_tick(void *data, float seconds)
 					(strlen(info->data->overloadChar) *
 					 numOverload));
 				if (errno) {
-					obs_log(LOG_ERROR, "bmalloc Failed");
+					obs_log(LOG_ERROR, "%s (%d): %s",
+						__FILE__, __LINE__,
+						strerror(errno));
 					if (isSettings) {
 						obs_data_release(isSettings);
 					}
