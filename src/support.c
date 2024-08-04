@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <uchar.h>
+#include <errno.h>
 
 #include "git-diff-interface.h"
 const char *PLUGIN_NAME = "git-stats";
@@ -36,7 +37,13 @@ char *ltoa(long input)
 	//  divides by a multiple without being a fraction
 	long currProduct = 1;
 	int size = 0;
+	errno = 0;
 	char *output = bmalloc(sizeof(char) * 22);
+	if (errno) {
+		obs_log(LOG_ERROR, "%s (%d): %s", __FILE__, __LINE__,
+			strerror(errno));
+		return (NULL);
+	}
 	bool entered = false;
 	output[0] = '\0';
 	if (input == 0) {
@@ -97,9 +104,22 @@ bool checkRepoExists(char **repos, int amtRepos, char *checkPath)
 // extracts first unicode character from a given string
 char *extractUnicode(const char *input)
 {
+	errno = 0;
 	char *buff = bmalloc(sizeof(char) * MB_CUR_MAX);
+	if (errno) {
+		obs_log(LOG_ERROR, "%s (%d): %s", __FILE__, __LINE__,
+			strerror(errno));
+		return (NULL);
+	}
 	buff[0] = '\0';
+	errno = 0;
 	char *inputCpy = bmalloc(sizeof(char) * (strlen(input) + 2));
+	if (errno) {
+
+		obs_log(LOG_ERROR, "%s (%d): %s", __FILE__, __LINE__,
+			strerror(errno));
+		return (NULL);
+	}
 	inputCpy[0] = '\0';
 	strncpy(inputCpy, input, strlen(input) + 1);
 	char32_t specChar;
@@ -107,7 +127,8 @@ char *extractUnicode(const char *input)
 	char *locale = setlocale(LC_ALL, "");
 
 	if (!locale) {
-		obs_log(LOG_ERROR, "Locale Could Not Be Set");
+		obs_log(LOG_WARNING, "%s (%d): %s", __FILE__, __LINE__,
+			strerror(errno));
 		bfree(buff);
 		return (NULL);
 	}
@@ -115,12 +136,14 @@ char *extractUnicode(const char *input)
 
 	size_t status = mbrtoc32(&specChar, inputCpy, 16, &mbs);
 	if (status == (size_t)-1 || status == (size_t)-2) {
-		obs_log(LOG_WARNING, "Unicode Character Not Found");
+		obs_log(LOG_WARNING, "%s (%d): %s", __FILE__, __LINE__,
+			strerror(errno));
 		return (NULL);
 	}
 	int size = c32rtomb(buff, specChar, &mbs);
 	if (size < 0) {
-		obs_log(LOG_ERROR, "Failed To Convert Unicode Character");
+		obs_log(LOG_WARNING, "%s (%d): %s", __FILE__, __LINE__,
+			strerror(errno));
 		return (NULL);
 	}
 	// ASSUMED: if size = 1 then its a normal character not a nerdfont character
