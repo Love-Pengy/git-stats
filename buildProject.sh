@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# Remove installed .deb packages
+sudo apt-get purge git-stats
 rm -rf ./release/ 
 rm -rf ~/.config/obs-studio/plugins/git-stats/
 ./.github/scripts/build-linux --skip-deps 
