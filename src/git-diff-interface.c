@@ -23,7 +23,6 @@ bool checkInsertions(char *input)
 	errno = 0;
 	char *tmpString = bmalloc(sizeof(char) * strlen(input) + 1);
 	if (errno) {
-		perror("git-diff-interface(checkInsertions)");
 		obs_log(LOG_ERROR, "CheckInsertions: %s", strerror(errno));
 		return (false);
 	}
@@ -33,7 +32,6 @@ bool checkInsertions(char *input)
 		errno = 0;
 		tmpString = bmalloc(sizeof(char) * strlen(input) + 1);
 		if (errno) {
-			perror("git-diff-interface(checkInsertions)");
 			obs_log(LOG_ERROR, "CheckInsertions: %s",
 				strerror(errno));
 			return (false);
@@ -58,7 +56,6 @@ bool checkDeletions(char *input)
 	errno = 0;
 	char *tmpString = bmalloc(sizeof(char) * strlen(input) + 1);
 	if (errno) {
-		perror("git-diff-interface(checkDeletions)");
 		obs_log(LOG_ERROR, "CheckDeletions: %s", strerror(errno));
 		return (false);
 	}
@@ -69,7 +66,6 @@ bool checkDeletions(char *input)
 		errno = 0;
 		tmpString = bmalloc(sizeof(char) * strlen(input) + 1);
 		if (errno) {
-			perror("git-diff-interface(checkInsertions)");
 			obs_log(LOG_ERROR, "CheckDeletions: %s",
 				strerror(errno));
 			return (false);
@@ -99,7 +95,6 @@ long getInsertionNumber(char *diffString)
 	errno = 0;
 	char *diffStringCopy = bmalloc(sizeof(char) * (strlen(diffString) + 1));
 	if (errno) {
-		perror("git-diff-interface(getInsertionNumber)");
 		obs_log(LOG_ERROR, "GetInsertionNumber: %s", strerror(errno));
 		return (0);
 	}
@@ -137,7 +132,6 @@ long getDeletionNumber(char *diffString)
 	errno = 0;
 	char *diffStringCopy = bmalloc(sizeof(char) * (strlen(diffString) + 1));
 	if (errno) {
-		perror("git-diff-interface(getDeletionNumber)");
 		obs_log(LOG_ERROR, "GetInsertionNumber: %s", strerror(errno));
 		return (0);
 	}
@@ -172,7 +166,6 @@ char *formatEndPathChar(char *formatee)
 	errno = 0;
 	char *output = bmalloc(sizeof(char) * strlen(formatee) + 3);
 	if (errno) {
-		perror("git-diff-interface(formatEndPathChar)");
 		obs_log(LOG_ERROR, "formatEndPathChar: %s", strerror(errno));
 		return (formatee);
 	}
@@ -188,7 +181,6 @@ void expandHomeDir(char **input)
 	errno = 0;
 	char *inputHold = bmalloc(sizeof(char) * (strlen((*input)) + 1));
 	if (errno) {
-		perror("git-diff-interface(expandHomeDir)");
 		return;
 	}
 	inputHold[0] = '\0';
@@ -197,7 +189,6 @@ void expandHomeDir(char **input)
 	(*input) = brealloc((*input), sizeof(char) * (strlen((*input)) +
 						      strlen(expanded) + 1));
 	if (errno) {
-		perror("git-diff-interface(expandHomeDir)");
 		obs_log(LOG_ERROR, "ExpandHomeDir: %s", strerror(errno));
 		return;
 	}
@@ -235,7 +226,6 @@ bool checkPath(char *path)
 	errno = 0;
 	dptr = opendir(buffer);
 	if (errno) {
-		perror("git-diff-interface(checkPath)");
 		obs_log(LOG_ERROR, "CheckPath: %s: OG: %s, NEW: %s",
 			strerror(errno), path, buffer);
 		bfree(buffer);
@@ -274,7 +264,6 @@ void updateTrackedFiles(struct gitData *data)
 		errno = 0;
 		char *command = bmalloc(sizeof(char) * commandLength);
 		if (errno) {
-			perror("git-diff-interface(updateTrackedFiles)");
 			obs_log(LOG_ERROR, "UpdateTrackedFiles: %s",
 				strerror(errno));
 			continue;
@@ -316,7 +305,6 @@ void addGitRepoDir(struct gitData *data, char *repoDirPath)
 	errno = 0;
 	buffer = bmalloc(sizeof(char) * (strlen(repoDirPath) + 8));
 	if (errno) {
-		perror("git-diff-interface(addGitRepoDir)");
 		obs_log(LOG_ERROR, "AddGitRepoDir: %s", strerror(errno));
 		return;
 	}
@@ -334,7 +322,6 @@ void addGitRepoDir(struct gitData *data, char *repoDirPath)
 	errno = 0;
 	dptr = opendir(buffer);
 	if (errno) {
-		perror("git-diff-interface(addGitRepoDir)");
 		obs_log(LOG_ERROR, "AddGitRepoDir: %s", strerror(errno));
 		bfree(buffer);
 		return;
@@ -349,7 +336,6 @@ void addGitRepoDir(struct gitData *data, char *repoDirPath)
 		dp = opendir(repoDirPath);
 	}
 	if (errno) {
-		perror("git-diff-interface(addGitRepoDir)");
 		obs_log(LOG_ERROR, "AddGitRepoDir: %s", strerror(errno));
 		bfree(buffer);
 		return;
@@ -357,7 +343,6 @@ void addGitRepoDir(struct gitData *data, char *repoDirPath)
 	errno = 0;
 	struct dirent *dirStruct = readdir(dp);
 	if (errno) {
-		perror("git-diff-interface(addGitRepoDir)");
 		bfree(buffer);
 		return;
 	}
