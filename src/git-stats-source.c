@@ -91,6 +91,8 @@ static void *git_stats_create(obs_data_t *settings, obs_source_t *source)
 	info->deletionSource =
 		obs_source_create(text_source_id, "deletionSource", NULL, NULL);
 	obs_source_add_active_child(info->gitSource, info->deletionSource);
+	obs_source_set_hidden(info->insertionSource, true);
+	obs_source_set_hidden(info->deletionSource, true);
 
 	// ensure that defaults are set AFTER the creation has completed
 	git_stats_get_defaults(settings);
@@ -239,10 +241,14 @@ static void git_stats_update(void *data, obs_data_t *settings)
 			strlen(DEFAULT_OVERLOAD_CHAR) + 1);
 	}
 
-	info->data->insertionEnabled = obs_data_get_bool(settings, "insertion_properties");
-	info->data->insertionSymbolEnabled = obs_data_get_bool(settings, "insertion_symbol");
-	info->data->deletionEnabled = obs_data_get_bool(settings, "deletion_properties");
-	info->data->deletionSymbolEnabled = obs_data_get_bool(settings, "deletion_symbol");
+	info->data->insertionEnabled =
+		obs_data_get_bool(settings, "insertion_properties");
+	info->data->insertionSymbolEnabled =
+		obs_data_get_bool(settings, "insertion_symbol");
+	info->data->deletionEnabled =
+		obs_data_get_bool(settings, "deletion_properties");
+	info->data->deletionSymbolEnabled =
+		obs_data_get_bool(settings, "deletion_symbol");
 
 	obs_data_array_t *dirArray =
 		obs_data_get_array(gsSettings, "single_repos");

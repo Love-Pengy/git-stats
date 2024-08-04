@@ -5,8 +5,14 @@
 - [ASSUMPTIONS](#assumptions)
 - [TIMELINE](#timeline)
 - [TODO](#todo)
+- [NEW DIRECTION](#new-direction)
+  - [NEW DIRECTION DEBUGS](#new-direction-debugs)
 - [Formatting TODO](#formatting-todo)
 - [Optimistic](#optimistic)
+- [DEBUG NOTES](#debug-notes)
+  - [Psuedo for updating the deletion source](#psuedo-for-updating-the-deletion-source)
+  - [Psuedo For Dirs](#psuedo-for-dirs)
+- [README](#readme)
 <!--toc:end-->
 
 ## FEATURES
@@ -214,12 +220,13 @@ files bool from a ticked state~~
 - ~~fix inconsistent spacing when using different modes/settings~~
 - ~~fix performance issues~~
 - ~~add custom icons for the overload indicator~~
-
+- SWITCHED TO [NEW DIRECTION](#new-direction) AT THIS POINT
 - get rid of memory leaks
 - make update not reset it to 0 0
 - figure out how to use gh actions to build
     - seems like I just have to turn them on because they are not automatically turned on when you fork a repo 
 - test the build on a different env (prolly arch peecee)
+
 
 ## NEW DIRECTION
 - ~~remove untracked files~~ 
@@ -230,13 +237,12 @@ files bool from a ticked state~~
 - ~~remove all memory leaks~~ 
 - change source to the private version so it doesn't show up in the sources list
 - fix terrible failure messages
-- figure out a better way to do untracked files
+    - maybe figure out if theres not a working way to change text to red on error
 - center deletion number when insertion number is set as inactive
 - allow unicode specification as a string
+- figure out a better way to do untracked files
+- write out install instructions
 
-### NEW DIRECTION DEBUGS
-- ~~make numbers not dissapear on update~~
-- make text sources used in plugin not show up in sources list 
 
 ## Formatting TODO
 
