@@ -167,8 +167,10 @@ static void git_stats_destroy(void *data)
 static uint32_t git_stats_width(void *data)
 {
 	struct gitStatsInfo *info = data;
-
-	return (obs_source_get_width(info->deletionSource));
+	if (info->data->deletionEnabled) {
+		return (obs_source_get_width(info->deletionSource));
+	}
+	return (obs_source_get_width(info->insertionSource));
 }
 
 // get the height needed for the source
