@@ -167,8 +167,10 @@ static void git_stats_destroy(void *data)
 static uint32_t git_stats_width(void *data)
 {
 	struct gitStatsInfo *info = data;
-
-	return (obs_source_get_width(info->deletionSource));
+	if (info->data->deletionEnabled) {
+		return (obs_source_get_width(info->deletionSource));
+	}
+	return (obs_source_get_width(info->insertionSource));
 }
 
 // get the height needed for the source
@@ -615,9 +617,11 @@ static void git_stats_tick(void *data, float seconds)
 			char *insertionValueString = ltoa(insertionValue);
 			int deletionSize = strlen(insertionValueString) + 2;
 			bfree(insertionValueString);
-			for (int i = 0; i < deletionSize; i++) {
-				spaces[i] = ' ';
-				spaces[i + 1] = '\0';
+			if (info->data->insertionEnabled) {
+				for (int i = 0; i < deletionSize; i++) {
+					spaces[i] = ' ';
+					spaces[i + 1] = '\0';
+				}
 			}
 			char *deletionValueString = ltoa(deletionValue);
 			if (info->data->deletionSymbolEnabled) {
