@@ -1,6 +1,6 @@
 # Exclude everything
 /*
-
+*/.null-ls*
 # Except for default project files
 !/.github
 !/build-aux
