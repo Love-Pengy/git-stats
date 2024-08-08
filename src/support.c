@@ -1,6 +1,6 @@
 #include "support.h"
-#include <fcntl.h>
 
+#include <fcntl.h>
 #include <locale.h>
 #include <obs-module.h>
 #include <stdio.h>
@@ -162,7 +162,7 @@ char *extractUnicode(const char *input)
 //check lock status of a file true = locked, false = unlocked
 bool checkLockStatus(char *path)
 {
-	char *pathCpy = bmalloc(sizeof(char)  * strlen(path) + 1);
+	char *pathCpy = bmalloc(sizeof(char) * strlen(path) + 1);
 	pathCpy[0] = '\0';
 	strncpy(pathCpy, path, strlen(path) + 1);
 	if (pathCpy[0] == '~') {
@@ -176,7 +176,7 @@ bool checkLockStatus(char *path)
 		bfree(pathCpy);
 		return (true);
 	}
-    bfree(pathCpy);
+	bfree(pathCpy);
 	return (false);
 }
 

@@ -8,4 +8,4 @@ extern int MAXNUMPATHS;
 bool checkRepoExists(char **, int, char *);
 char *extractUnicode(const char *);
 bool checkLockStatus(char *);
-bool checkUntrackedFileLock(struct gitData*);
+bool checkUntrackedFileLock(struct gitData *);
