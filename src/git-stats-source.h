@@ -16,4 +16,5 @@ struct gitData {
 	char *overloadChar;
 	int numUntrackedFiles;
 	char **untrackedFiles;
+	long previousUntrackedAdded;
 };
