@@ -2,6 +2,7 @@
 #include "./git-stats-source.h"
 void updateTrackedFiles(struct gitData *);
 void expandHomeDir(char **);
-void createUntrackedFilesHM(struct gitData *);
+void createUntrackedFiles(struct gitData *);
+long updateUntrackedFiles(struct gitData *);
 void addGitRepoDir(struct gitData *, char *);
 char *checkInvalidRepos(char **, int);

@@ -70,6 +70,9 @@ static void *git_stats_create(obs_data_t *settings, obs_source_t *source)
 	}
 	info->data->trackedPaths = NULL;
 	info->data->numTrackedFiles = 0;
+	info->data->untrackedFiles = NULL;
+	info->data->numUntrackedFiles = 0;
+	info->data->previousUntrackedAdded = 0;
 	info->data->added = 0;
 	info->data->deleted = 0;
 	info->data->insertionEnabled = true;
@@ -154,6 +157,7 @@ static void git_stats_destroy(void *data)
 		bfree(info->data->trackedPaths);
 		info->data->trackedPaths = NULL;
 	}
+
 	bfree(info->data);
 	info->data = NULL;
 
@@ -190,6 +194,7 @@ static void git_stats_get_defaults(obs_data_t *settings)
 	// repo settings
 	obs_data_set_default_int(settings, "delay", 5);
 	obs_data_set_default_string(settings, "overload_char", ".");
+	obs_data_set_default_bool(settings, "untracked_files", false);
 
 	// shared settings
 	obs_data_set_default_bool(settings, "antialiasing", true);
@@ -275,6 +280,12 @@ static void git_stats_update(void *data, obs_data_t *settings)
 			info->data->trackedPaths[i] = NULL;
 		}
 	}
+	if (info->data->numUntrackedFiles > 0) {
+		for (int i = 0; i < info->data->numUntrackedFiles; i++) {
+			bfree(info->data->untrackedFiles[i]);
+			info->data->untrackedFiles[i] = NULL;
+		}
+	}
 	if (!info->data->trackedPaths) {
 		errno = 0;
 		info->data->trackedPaths =
@@ -287,7 +298,21 @@ static void git_stats_update(void *data, obs_data_t *settings)
 			info->data->trackedPaths[i] = NULL;
 		}
 	}
+	if (!info->data->untrackedFiles) {
+
+		errno = 0;
+		info->data->untrackedFiles =
+			bmalloc(sizeof(char *) * MAXNUMPATHS);
+		if (errno) {
+			obs_log(LOG_ERROR, "%s (%d): %s", __FILE__, __LINE__,
+				strerror(errno));
+		}
+		for (int i = 0; i < MAXNUMPATHS; i++) {
+			info->data->untrackedFiles[i] = NULL;
+		}
+	}
 	info->data->numTrackedFiles = 0;
+	info->data->numUntrackedFiles = 0;
 
 	for (size_t i = 0; i < obs_data_array_count(dirArray); i++) {
 		obs_data_t *currItem = obs_data_array_item(dirArray, i);
@@ -316,7 +341,9 @@ static void git_stats_update(void *data, obs_data_t *settings)
 			      (char *)obs_data_get_string(
 				      settings, "repositories_directory"));
 	}
-
+	if (obs_data_get_bool(settings, "untracked_files")) {
+		createUntrackedFiles(info->data);
+	}
 	info->data->delayAmount = obs_data_get_int(settings, "delay");
 	info->data->added = 0;
 	info->data->deleted = 0;
@@ -473,6 +500,14 @@ static void git_stats_tick(void *data, float seconds)
 			info->data->deleted = 0;
 			info->data->added = 0;
 			updateTrackedFiles(info->data);
+			if (!checkUntrackedFileLock(info->data)) {
+				info->data->previousUntrackedAdded =
+					updateUntrackedFiles(info->data);
+
+			} else {
+				info->data->added +=
+					info->data->previousUntrackedAdded;
+			}
 		}
 		if (info->data->insertionEnabled) {
 			long value = info->data->added;
@@ -713,6 +748,9 @@ static obs_properties_t *git_stats_properties(void *unused)
 	obs_properties_add_text(repo_props, "overload_char",
 				"Character Shown For Overload",
 				OBS_TEXT_DEFAULT);
+
+	obs_properties_add_bool(repo_props, "untracked_files",
+				"Account For Untracked Files");
 
 	obs_properties_add_button(repo_props, "test_button", "Test Max Size",
 				  toggleTestCallback);

@@ -1,4 +1,5 @@
 #include "support.h"
+#include <fcntl.h>
 
 #include <locale.h>
 #include <obs-module.h>
@@ -9,6 +10,7 @@
 #include <errno.h>
 
 #include "git-diff-interface.h"
+#include "git-stats-source.h"
 const char *PLUGIN_NAME = "git-stats";
 const char *PLUGIN_VERSION = "0.0.2";
 int MAXNUMPATHS = 100;
@@ -125,7 +127,6 @@ char *extractUnicode(const char *input)
 	char32_t specChar;
 	mbstate_t mbs;
 	char *locale = setlocale(LC_ALL, "");
-
 	if (!locale) {
 		obs_log(LOG_WARNING, "%s (%d): %s", __FILE__, __LINE__,
 			strerror(errno));
@@ -156,4 +157,35 @@ char *extractUnicode(const char *input)
 	buff[size] = '\0';
 	bfree(inputCpy);
 	return (buff);
+}
+
+//check lock status of a file true = locked, false = unlocked
+bool checkLockStatus(char *path)
+{
+	char *pathCpy = bmalloc(sizeof(char)  * strlen(path) + 1);
+	pathCpy[0] = '\0';
+	strncpy(pathCpy, path, strlen(path) + 1);
+	if (pathCpy[0] == '~') {
+		expandHomeDir(&pathCpy);
+	}
+	struct flock lock;
+	memset(&lock, 0, sizeof(struct flock));
+	int fd = open(pathCpy, O_RDWR);
+	fcntl(fd, F_GETLK, &lock);
+	if (lock.l_type != F_UNLCK) {
+		bfree(pathCpy);
+		return (true);
+	}
+    bfree(pathCpy);
+	return (false);
+}
+
+bool checkUntrackedFileLock(struct gitData *info)
+{
+	for (int i = 0; i < info->numUntrackedFiles; i++) {
+		if (checkLockStatus(info->untrackedFiles[i])) {
+			return (true);
+		}
+	}
+	return (false);
 }

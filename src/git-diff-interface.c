@@ -14,6 +14,7 @@
 #include "./support.h"
 
 #define MAXOUTPUTSIZE 1024
+#define MAX_LINE_LENGTH 255
 
 bool checkInsertions(char *input)
 {
@@ -186,7 +187,6 @@ void expandHomeDir(char **input)
 	errno = 0;
 	char *inputHold = bmalloc(sizeof(char) * (strlen((*input)) + 1));
 	if (errno) {
-
 		obs_log(LOG_ERROR, "%s (%d): %s", __FILE__, __LINE__,
 			strerror(errno));
 		return;
@@ -199,6 +199,7 @@ void expandHomeDir(char **input)
 	if (errno) {
 		obs_log(LOG_ERROR, "%s (%d): %s", __FILE__, __LINE__,
 			strerror(errno));
+		bfree(inputHold);
 		return;
 	}
 	(*input)[0] = '\0';
@@ -236,7 +237,7 @@ bool checkPath(char *path)
 	errno = 0;
 	dptr = opendir(buffer);
 	if (errno) {
-		obs_log(LOG_ERROR, "%s (%d): %s", __FILE__, __LINE__,
+		obs_log(LOG_DEBUG, "%s (%d): %s", __FILE__, __LINE__,
 			strerror(errno));
 		bfree(buffer);
 		if (fixedPath) {
@@ -251,6 +252,7 @@ bool checkPath(char *path)
 	}
 	return (true);
 }
+
 void updateTrackedFiles(struct gitData *data)
 {
 	if (data == NULL) {
@@ -497,4 +499,126 @@ char *checkInvalidRepos(char **paths, int numPaths)
 		}
 	}
 	return (NULL);
+}
+
+long getLinesInFile(char *path)
+{
+	if (path == NULL) {
+		return (0);
+	}
+	FILE *fptr;
+	errno = 0;
+	char *pathCpy = bmalloc(sizeof(char) * (strlen(path) + 1));
+	pathCpy[0] = '\0';
+	strncpy(pathCpy, path, strlen(path) + 1);
+	if (pathCpy[0] == '~') {
+		expandHomeDir(&pathCpy);
+	}
+	fptr = fopen(pathCpy, "r");
+	if (errno) {
+		obs_log(LOG_DEBUG, "%s (%d): %s", __FILE__, __LINE__,
+			strerror(errno));
+		bfree(pathCpy);
+		return (0);
+	}
+
+	char buffer[65536];
+	long lineCount = 0;
+
+	while (1) {
+		size_t chunk = fread(buffer, 1, 65536, fptr);
+		if (!chunk) {
+			return (lineCount);
+		}
+		if (ferror(fptr)) {
+			return (0);
+		}
+		for (size_t i = 0; i < chunk; i++) {
+			if (buffer[i] == '\n') {
+				lineCount++;
+			}
+		}
+		if (feof(fptr)) {
+			break;
+		}
+	}
+	bfree(pathCpy);
+	fclose(fptr);
+	return (lineCount);
+}
+
+void createUntrackedFiles(struct gitData *data)
+{
+	if (data == NULL) {
+		return;
+	}
+	FILE *fp;
+	char filename[1000] = {0};
+	char entirePath[1024] = {0};
+
+	for (int i = 0; i < data->numTrackedFiles; i++) {
+		int commandLength =
+			(strlen("/usr/bin/git -C ") +
+			 strlen(data->trackedPaths[i]) +
+			 strlen(" ls-files --others --exclude-standard") + 1);
+		errno = 0;
+		char *command = bmalloc(sizeof(char) * (commandLength + 1));
+		if (errno) {
+			obs_log(LOG_WARNING, "%s (%d): %s", __FILE__, __LINE__,
+				strerror(errno));
+			continue;
+		}
+		command[0] = '\0';
+
+		snprintf(command, commandLength + 1, "%s%s%s",
+			 "/usr/bin/git -C ", data->trackedPaths[i],
+			 " ls-files --others --exclude-standard");
+
+		fp = popen(command, "r");
+		bfree(command);
+		if (fp == NULL) {
+			continue;
+		}
+
+		while (fgets(filename, sizeof(filename), fp)) {
+			trailingNewlineDestroyer(filename);
+
+			if (!(data->trackedPaths[i]
+						[strlen(data->trackedPaths[i]) -
+						 1] == '/')) {
+				snprintf(entirePath,
+					 (strlen(filename) +
+					  strlen(data->trackedPaths[i]) + 2),
+					 "%s/%s", data->trackedPaths[i],
+					 filename);
+			} else {
+				snprintf(entirePath,
+					 (strlen(filename) +
+					  strlen(data->trackedPaths[i]) + 1),
+					 "%s%s", data->trackedPaths[i],
+					 filename);
+			}
+			data->untrackedFiles[data->numUntrackedFiles] = bmalloc(
+				sizeof(char) * (strlen(entirePath) + 1));
+			strncpy(data->untrackedFiles[data->numUntrackedFiles],
+				entirePath, strlen(entirePath) + 1);
+			data->numUntrackedFiles++;
+		}
+		pclose(fp);
+	}
+}
+
+long updateUntrackedFiles(struct gitData *data)
+{
+	if (data == NULL) {
+		obs_log(LOG_INFO, "%s (%d): %s", __FILE__, __LINE__,
+			"Data Struct Uninitialized");
+		return (0);
+	}
+	long val = 0;
+	for (int i = 0; i < data->numUntrackedFiles; i++) {
+		val += getLinesInFile(data->untrackedFiles[i]);
+		data->added += val;
+	}
+	return (val);
 }
