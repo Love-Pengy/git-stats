@@ -38,7 +38,7 @@ inputs:
     default: ''
   package:
     description: 'Create Windows or macOS installation package'
-    required: false
+    required: true
     default: 'false'
   workingDirectory:
     description: 'Working directory for packaging'
