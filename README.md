@@ -1,10 +1,15 @@
 # Git Stats
 
 <!--toc:start-->
-- [Git Stats](#git-stats)
+- [Features](#features)
+- [Requirements](#requirements)
+- [Installation](#installation)
+  - [Debian Based Systems](#debian-based-systems)
+  - [Other Systems](#other-systems)
+- [Future Features](#future-features)
 <!--toc:end-->
 
-This plugin is an enhanced implementation of the [git-linestats-widget](https://github.com/BryanHaley/git-linestats-widget), designed to automate and streamline your git statistics display with OBS.
+This plugin is an integrated implementation of the [git-linestats-widget](https://github.com/BryanHaley/git-linestats-widget), designed to automate and streamline your git statistics display with [OBS](https://github.com/obsproject/obs-studio).
 
 **NOTE:** This plugin is currently only available for Linux. Support for other operating systems may be added in the future.
 
@@ -13,7 +18,7 @@ This plugin is an enhanced implementation of the [git-linestats-widget](https://
 - **Tracked and Untracked Files**: Specify which files to track and display.
 - **Customizable Text**: Modify font and colors to suit your preferences.
 - **Anti-Aliasing**: Ensure smooth and visually appealing text rendering.
-- **Future Enhancements**: More features are planned and will be added soon.
+- **Future Enhancements**: More features are planned and will be added soon. Feel free to open an issue with a freature request or take a look at the current [TODO](https://github.com/Love-Pengy/git-stats/issues/4) list.
 
 ## Requirements
 
@@ -46,5 +51,4 @@ This plugin is an enhanced implementation of the [git-linestats-widget](https://
 **NOTE:** If the ~/.config/obs-studio/plugins directory does not exist just create it
 
 ## Future Features
-- Untracked Files
-- Allow For Ignoring of binaries and hidden files
+- Allow ignoring of binaries and hidden files
