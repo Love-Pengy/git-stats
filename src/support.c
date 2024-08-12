@@ -1,5 +1,6 @@
 #include "support.h"
 
+#include <unistd.h>
 #include <fcntl.h>
 #include <locale.h>
 #include <obs-module.h>
@@ -174,9 +175,11 @@ bool checkLockStatus(char *path)
 	fcntl(fd, F_GETLK, &lock);
 	if (lock.l_type != F_UNLCK) {
 		bfree(pathCpy);
+        close(fd);
 		return (true);
 	}
 	bfree(pathCpy);
+    close(fd);
 	return (false);
 }
 

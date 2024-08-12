@@ -43,8 +43,7 @@ This plugin is an integrated implementation of the [git-linestats-widget](https:
     cmake --build --preset linux-x86_64 --config RelWithDebInfo --parallel
     cmake --install build_x86_64 --prefix ./release/RelWithDebInfo
     mkdir -p ./release/RelWithDebInfo/share/obs/obs-plugins/git-stats/bin/64bit
-    cp ./release/RelWithDebInfo/lib/x86_64-linux-gnu/obs-plugins/git-stats.so ./release/RelWithDebInfo/share/obs/obs-plugins/git-stats/bin/64bit
-    
+    cp ./release/RelWithDebInfo/lib/x86_64-linux-gnu/obs-plugins/git-stats.so ./release/RelWithDebInfo/share/obs/obs-plugins/git-stats/bin/64bit    
     ```
 
 - Copy the directory into your OBS plugin directory: ```cp -r ./release/RelWithDebInfo/share/obs/obs-plugins/git-stats ~/.config/obs-studio/plugins```
