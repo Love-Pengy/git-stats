@@ -17,6 +17,7 @@
 !README.md
 !/docs
 !/buildProject.sh
+!/dev
 # Exclude lock files
 *.lock.json
 
