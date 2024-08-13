@@ -358,7 +358,7 @@ void addGitRepoDir(struct gitData *data, char *repoDirPath)
 	errno = 0;
 	struct dirent *dirStruct = readdir(dp);
 	if (errno) {
-        closedir(dp);
+		closedir(dp);
 		bfree(buffer);
 		return;
 	}
@@ -406,7 +406,7 @@ void addGitRepoDir(struct gitData *data, char *repoDirPath)
 					obs_log(LOG_ERROR, "%s (%d): %s",
 						__FILE__, __LINE__,
 						strerror(errno));
-                    closedir(dp);
+					closedir(dp);
 					bfree(tmpFilePath);
 					bfree(buffer);
 					return;

@@ -175,11 +175,11 @@ bool checkLockStatus(char *path)
 	fcntl(fd, F_GETLK, &lock);
 	if (lock.l_type != F_UNLCK) {
 		bfree(pathCpy);
-        close(fd);
+		close(fd);
 		return (true);
 	}
 	bfree(pathCpy);
-    close(fd);
+	close(fd);
 	return (false);
 }
 
