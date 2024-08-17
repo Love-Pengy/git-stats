@@ -467,39 +467,40 @@ static void git_stats_tick(void *data, float seconds)
 			}
 			return;
 		}
-		if (info->data->trackedPaths == NULL) {
+		if (info->data->trackedPaths == NULL ||
+		    !info->data->numTrackedFiles) {
 			if (info->data->insertionEnabled) {
 				if (info->data->insertionSymbolEnabled) {
 					obs_data_set_string(isSettings, "text",
-							    "\n+0");
+							    "\n  +0");
 					obs_source_update(info->insertionSource,
 							  isSettings);
 				} else {
 					obs_data_set_string(isSettings, "text",
-							    "\n 0");
+							    "\n   0");
 					obs_source_update(info->insertionSource,
 							  isSettings);
 				}
 			} else {
-				obs_data_set_string(isSettings, "text", " ");
+				obs_data_set_string(isSettings, "text", "    ");
 				obs_source_update(info->insertionSource,
 						  isSettings);
 			}
 			if (info->data->deletionEnabled) {
 				if (info->data->deletionSymbolEnabled) {
 					obs_data_set_string(dsSettings, "text",
-							    "\n   -0");
+							    "\n     -0  ");
 					obs_source_update(info->deletionSource,
 							  dsSettings);
 				} else {
 					obs_data_set_string(dsSettings, "text",
-							    "\n    0");
+							    "\n      0  ");
 					obs_source_update(info->deletionSource,
 							  dsSettings);
 				}
 			} else {
 				obs_data_set_string(dsSettings, "text",
-						    "     ");
+						    "         ");
 				obs_source_update(info->deletionSource,
 						  dsSettings);
 			}
@@ -525,6 +526,8 @@ static void git_stats_tick(void *data, float seconds)
 					info->data->previousUntrackedAdded;
 			}
 		}
+		int spaceCheck = (info->data->insertionEnabled << 1) |
+				 info->data->deletionEnabled;
 		if (info->data->insertionEnabled) {
 			long value = info->data->added;
 			int numOverload = value / OVERLOAD_VAL;
@@ -582,21 +585,37 @@ static void git_stats_tick(void *data, float seconds)
 				       info->data->overloadChar);
 			}
 
-			char outputBuffer[100] = "\0";
+			char outputBuffer[100] = "";
 			char *valueString = ltoa(value);
+			char insertionSpaces[4] = "";
+			if (spaceCheck == 0b11) {
+				for (size_t i = 0; i < 4 - strlen(valueString);
+				     i++) {
+					insertionSpaces[i] = ' ';
+					insertionSpaces[i + 1] = '\0';
+				}
+			} else {
+				strncpy(insertionSpaces, "   ", 4);
+			}
 			if (info->data->insertionSymbolEnabled) {
 				snprintf(outputBuffer,
 					 strlen(overloadString) +
-						 strlen(valueString) + 3,
-					 "%s\n+%s", overloadString,
+						 strlen(valueString) +
+						 (strlen(insertionSpaces) * 2) +
+						 3,
+					 "%s%s\n%s+%s", insertionSpaces,
+					 overloadString, insertionSpaces,
 					 valueString);
 				obs_data_set_string(isSettings, "text",
 						    outputBuffer);
 			} else {
 				snprintf(outputBuffer,
 					 strlen(overloadString) +
-						 strlen(valueString) + 3,
-					 "%s\n %s", overloadString,
+						 strlen(valueString) +
+						 (strlen(insertionSpaces) * 2) +
+						 3,
+					 "%s%s\n %s%s", insertionSpaces,
+					 overloadString, insertionSpaces,
 					 valueString);
 				obs_data_set_string(isSettings, "text",
 						    outputBuffer);
@@ -604,13 +623,11 @@ static void git_stats_tick(void *data, float seconds)
 			bfree(valueString);
 			bfree(overloadString);
 		} else {
-			char outputBuffer[100] = "\0";
-			snprintf(outputBuffer, strlen("") + 1, "%s", "");
+			char outputBuffer[100] = " ";
 			obs_data_set_string(isSettings, "text", outputBuffer);
 		}
 		char outputBuffer[100] = "\0";
 		if (info->data->deletionEnabled) {
-			long insertionValue = info->data->added % OVERLOAD_VAL;
 			long deletionValue = info->data->deleted;
 			int numOverload = deletionValue / OVERLOAD_VAL;
 			numOverload > MAX_OVERLOAD ? numOverload = MAX_OVERLOAD
@@ -664,52 +681,82 @@ static void git_stats_tick(void *data, float seconds)
 				strcat(overloadString,
 				       info->data->overloadChar);
 			}
-			char spaces[7] = "";
-			char *insertionValueString = ltoa(insertionValue);
-			int deletionSize = strlen(insertionValueString) + 2;
-			bfree(insertionValueString);
-			if (info->data->insertionEnabled) {
-				for (int i = 0; i < deletionSize; i++) {
-					spaces[i] = ' ';
-					spaces[i + 1] = '\0';
-				}
-			}
+			char deletionSpaces[7] = "";
 			char *deletionValueString = ltoa(deletionValue);
+			if (info->data->insertionEnabled) {
+				for (size_t i = 0;
+				     i < (4 - strlen(deletionValueString));
+				     i++) {
+					deletionSpaces[i] = ' ';
+					deletionSpaces[i + 1] = '\0';
+				}
+			} else {
+				strncpy(deletionSpaces, "   ", 4);
+			}
 			if (info->data->deletionSymbolEnabled) {
-				snprintf(outputBuffer,
-					 strlen(overloadString) +
-						 (strlen(spaces) * 2) +
-						 strlen(deletionValueString) +
-						 3,
-					 "%s%s\n%s-%s", spaces, overloadString,
-					 spaces, deletionValueString);
+				if (spaceCheck == 0b11) {
+					snprintf(
+						outputBuffer,
+						strlen(overloadString) +
+							(strlen(deletionSpaces) *
+							 2) +
+							strlen(deletionValueString) +
+							3 + 12,
+						"%s%s%s\n%s-%s%s", "      ",
+						overloadString, deletionSpaces,
+						"      ", deletionValueString,
+						deletionSpaces);
+				} else {
+					snprintf(
+						outputBuffer,
+						strlen(overloadString) +
+							(strlen(deletionSpaces) *
+							 2) +
+							strlen(deletionValueString) +
+							3,
+						"%s%s\n%s-%s%s",
+						deletionSpaces, overloadString,
+						deletionSpaces,
+						deletionValueString,
+						deletionSpaces);
+				}
 				obs_data_set_string(dsSettings, "text",
 						    outputBuffer);
 			} else {
-				snprintf(outputBuffer,
-					 strlen(overloadString) +
-						 (strlen(spaces) * 2) +
-						 strlen(deletionValueString) +
-						 3,
-					 "%s%s\n%s %s", spaces, overloadString,
-					 spaces, deletionValueString);
+				if (spaceCheck != 0b11) {
+					snprintf(
+						outputBuffer,
+						strlen(overloadString) +
+							(strlen(deletionSpaces) *
+							 2) +
+							strlen(deletionValueString) +
+							3 + 12,
+						"%s%s%s\n%s %s%s", "      ",
+						overloadString, deletionSpaces,
+						"      ", deletionValueString,
+						deletionSpaces);
+				} else {
+					snprintf(
+						outputBuffer,
+						strlen(overloadString) +
+							(strlen(deletionSpaces) *
+							 2) +
+							strlen(deletionValueString) +
+							3 + 12,
+						"%s%s\n %s%s", overloadString,
+						deletionSpaces,
+						deletionValueString,
+						deletionSpaces);
+				}
+
 				obs_data_set_string(dsSettings, "text",
 						    outputBuffer);
 			}
 			bfree(deletionValueString);
 			bfree(overloadString);
 		} else {
-			char spaces[7] = "";
-			char *addedValue = ltoa(info->data->added);
-			int deletionSize = strlen(addedValue + 2);
-			for (int i = 0; i < deletionSize; i++) {
-				spaces[i] = ' ';
-				spaces[i + 1] = '\0';
-			}
-			snprintf(outputBuffer, strlen(spaces) + strlen(" ") + 1,
-				 "%s%s", spaces, " ");
-			obs_data_set_string(dsSettings, "text", outputBuffer);
-			bfree(addedValue);
+			char outputBuff[100] = " ";
+			obs_data_set_string(dsSettings, "text", outputBuff);
 		}
 
 		obs_source_update(info->deletionSource, dsSettings);
