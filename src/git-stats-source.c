@@ -472,12 +472,12 @@ static void git_stats_tick(void *data, float seconds)
 			if (info->data->insertionEnabled) {
 				if (info->data->insertionSymbolEnabled) {
 					obs_data_set_string(isSettings, "text",
-							    "\n  +0");
+							    "\n   +0");
 					obs_source_update(info->insertionSource,
 							  isSettings);
 				} else {
 					obs_data_set_string(isSettings, "text",
-							    "\n   0");
+							    "\n    0");
 					obs_source_update(info->insertionSource,
 							  isSettings);
 				}
@@ -489,12 +489,12 @@ static void git_stats_tick(void *data, float seconds)
 			if (info->data->deletionEnabled) {
 				if (info->data->deletionSymbolEnabled) {
 					obs_data_set_string(dsSettings, "text",
-							    "\n     -0  ");
+							    "\n      -0   ");
 					obs_source_update(info->deletionSource,
 							  dsSettings);
 				} else {
 					obs_data_set_string(dsSettings, "text",
-							    "\n      0  ");
+							    "\n       0   ");
 					obs_source_update(info->deletionSource,
 							  dsSettings);
 				}
