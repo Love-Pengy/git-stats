@@ -714,9 +714,8 @@ static void git_stats_tick(void *data, float seconds)
 							 2) +
 							strlen(deletionValueString) +
 							3,
-						"%s%s\n%s-%s%s",
-						deletionSpaces, overloadString,
-						deletionSpaces,
+						"%s%s\n%s-%s%s", deletionSpaces,
+						overloadString, deletionSpaces,
 						deletionValueString,
 						deletionSpaces);
 				}
