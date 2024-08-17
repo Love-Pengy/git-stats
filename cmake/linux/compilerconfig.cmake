@@ -39,10 +39,7 @@ set(_obs_gcc_c_options
     -Wunused-value
     -Wunused-variable
     -Wvla
-    #-lc
-    #-g
-    #-O0
-    #-ggdb3
+    # -lc -g -O0 -ggdb3
 )
 
 # gcc options for C++
@@ -88,5 +85,3 @@ else()
 endif()
 
 add_compile_definitions($<$<CONFIG:DEBUG>:DEBUG> $<$<CONFIG:DEBUG>:_DEBUG> SIMDE_ENABLE_OPENMP)
-
-

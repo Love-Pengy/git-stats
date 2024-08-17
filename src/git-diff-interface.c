@@ -525,12 +525,12 @@ long getLinesInFile(char *path)
 	}
 
 	char buffer[65536];
-    long lineCount = 0;
+	long lineCount = 0;
 	while (1) {
 		size_t chunk = fread(buffer, 1, 65536, fptr);
 		if (!chunk) {
-            bfree(pathCpy);
-            fclose(fptr);
+			bfree(pathCpy);
+			fclose(fptr);
 			return (lineCount);
 		}
 		if (ferror(fptr)) {
@@ -622,7 +622,7 @@ long updateUntrackedFiles(struct gitData *data)
 	for (int i = 0; i < data->numUntrackedFiles; i++) {
 		val += getLinesInFile(data->untrackedFiles[i]);
 	}
-    data->added += val;
+	data->added += val;
 	return (val);
 }
 
@@ -631,16 +631,17 @@ bool checkUntrackedFiles(struct gitData *data)
 {
 
 	if (data == NULL) {
-		return(false);
+		return (false);
 	}
 	FILE *fp;
 	char filename[1024] = {0};
-    int count = 0;
+	int count = 0;
 	for (int i = 0; i < data->numTrackedFiles; i++) {
 		int commandLength =
 			(strlen("/usr/bin/git -C ") +
 			 strlen(data->trackedPaths[i]) +
-			 strlen(" ls-files --others --exclude-standard | wc -l") + 1);
+			 strlen(" ls-files --others --exclude-standard | wc -l") +
+			 1);
 		errno = 0;
 		char *command = bmalloc(sizeof(char) * (commandLength + 1));
 		if (errno) {
@@ -661,11 +662,11 @@ bool checkUntrackedFiles(struct gitData *data)
 		}
 
 		while (fgets(filename, sizeof(filename), fp)) {
-        
-            trailingNewlineDestroyer(filename);
-            count += atoi(filename);
+
+			trailingNewlineDestroyer(filename);
+			count += atoi(filename);
 		}
 		pclose(fp);
 	}
-    return (count == data->numUntrackedFiles) ? false : true;
+	return (count == data->numUntrackedFiles) ? false : true;
 }
