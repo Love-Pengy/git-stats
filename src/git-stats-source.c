@@ -8,6 +8,7 @@
 
 #include "./git-diff-interface.h"
 #include "support.h"
+#include "./benchmarking/timeElapsed.h"
 
 #define OVERLOAD_VAL 9999
 #define MAX_OVERLOAD 4
@@ -223,6 +224,8 @@ static void git_stats_get_defaults(obs_data_t *settings)
 // update the settings data in our source
 static void git_stats_update(void *data, obs_data_t *settings)
 {
+	/*bench *timer = startTimer();*/
+
 	struct gitStatsInfo *info = data;
 
 	// copy settings from dummy property to the deletion text source
@@ -328,9 +331,11 @@ static void git_stats_update(void *data, obs_data_t *settings)
 			info->data->numTrackedFiles++;
 			continue;
 		}
-		strncpy(info->data->trackedPaths[i], currVal,
-			strlen(currVal) + 1);
-		info->data->numTrackedFiles++;
+		if (checkPath((char *)currVal)) {
+			strncpy(info->data->trackedPaths[i], currVal,
+				strlen(currVal) + 1);
+			info->data->numTrackedFiles++;
+		}
 		obs_data_release(currItem);
 	}
 	obs_data_array_release(dirArray);
@@ -358,6 +363,9 @@ static void git_stats_update(void *data, obs_data_t *settings)
 		obs_data_release(dsSettings);
 	}
 	FORCE_UPDATE = true;
+	/*endTimer(timer);*/
+	/*printf("[BENCHMARK] Update Took %ld Ms\n", getElapsedTimeMs(timer));*/
+	/*freeTimer(&timer);*/
 }
 
 // render out the source
@@ -380,6 +388,15 @@ static void git_stats_tick(void *data, float seconds)
 	info->time_passed += seconds;
 	if (info->time_passed > info->data->delayAmount || INIT_RUN ||
 	    FORCE_UPDATE) {
+		if (checkUntrackedFiles(info->data) &&
+		    info->data->numUntrackedFiles) {
+			printf("SOURCE UPDATED BASED ON UNTRACKED\n");
+			obs_data_t *currSettings =
+				obs_source_get_settings(info->gitSource);
+			obs_source_update(info->gitSource, currSettings);
+			obs_data_release(currSettings);
+		}
+		/*bench *timer = startTimer();*/
 		obs_data_t *isSettings =
 			obs_source_get_settings(info->insertionSource);
 		obs_data_t *dsSettings =
@@ -503,7 +520,6 @@ static void git_stats_tick(void *data, float seconds)
 			if (!checkUntrackedFileLock(info->data)) {
 				info->data->previousUntrackedAdded =
 					updateUntrackedFiles(info->data);
-
 			} else {
 				info->data->added +=
 					info->data->previousUntrackedAdded;
@@ -707,6 +723,10 @@ static void git_stats_tick(void *data, float seconds)
 		if (dsSettings) {
 			obs_data_release(dsSettings);
 		}
+		/*endTimer(timer);*/
+		/*printf("[BENCHMARK] Tick Took: %ld Ms\n",*/
+		/*       getElapsedTimeMs(timer));*/
+		/*freeTimer(&(timer));*/
 	}
 }
 
