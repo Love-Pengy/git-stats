@@ -1,12 +1,12 @@
 # Git Stats
 
 <!--toc:start-->
-- [Features](#features)
-- [Requirements](#requirements)
-- [Installation](#installation)
-  - [Debian Based Systems](#debian-based-systems)
-  - [Other Systems](#other-systems)
-- [Future Features](#future-features)
+- [Git Stats](#git-stats)
+  - [Features](#features)
+  - [Requirements](#requirements)
+  - [Installation](#installation)
+      - [Debian Based Systems](#debian-based-systems)
+      - [Other Systems](#other-systems)
 <!--toc:end-->
 
 This plugin is an integrated implementation of the [git-linestats-widget](https://github.com/BryanHaley/git-linestats-widget), designed to automate and streamline your git statistics display with [OBS](https://github.com/obsproject/obs-studio).
@@ -50,5 +50,3 @@ This plugin is an integrated implementation of the [git-linestats-widget](https:
 
 **NOTE:** If the ~/.config/obs-studio/plugins directory does not exist just create it
 
-## Future Features
-- Allow ignoring of binaries and hidden files

@@ -722,7 +722,7 @@ static void git_stats_tick(void *data, float seconds)
 				obs_data_set_string(dsSettings, "text",
 						    outputBuffer);
 			} else {
-				if (spaceCheck != 0b11) {
+				if (spaceCheck == 0b11) {
 					snprintf(
 						outputBuffer,
 						strlen(overloadString) +
