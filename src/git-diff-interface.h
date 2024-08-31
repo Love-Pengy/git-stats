@@ -8,3 +8,4 @@ void addGitRepoDir(struct gitData *, char *);
 bool checkUntrackedFiles(struct gitData *);
 char *checkInvalidRepos(char **, int);
 bool checkPath(char *);
+time_t getModifiedTime(char*);

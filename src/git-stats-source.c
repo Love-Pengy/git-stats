@@ -26,11 +26,11 @@ static int INIT_RUN = 1;
 // global for instant update
 static bool FORCE_UPDATE = false;
 
+//TODO: get rid of these they aren't needed
 static void git_stats_update(void *, obs_data_t *);
-
 static void git_stats_get_defaults(obs_data_t *);
-
 static obs_properties_t *git_stats_properties(void *);
+
 struct gitStatsInfo {
 	obs_source_t *insertionSource;
 	// pointer to the text source
@@ -73,6 +73,7 @@ static void *git_stats_create(obs_data_t *settings, obs_source_t *source)
 	info->data->numTrackedFiles = 0;
 	info->data->untrackedFiles = NULL;
 	info->data->numUntrackedFiles = 0;
+	info->data->trackedRepoMTimes = NULL;
 	info->data->previousUntrackedAdded = 0;
 	info->data->added = 0;
 	info->data->deleted = 0;
@@ -224,8 +225,6 @@ static void git_stats_get_defaults(obs_data_t *settings)
 // update the settings data in our source
 static void git_stats_update(void *data, obs_data_t *settings)
 {
-	/*bench *timer = startTimer();*/
-
 	struct gitStatsInfo *info = data;
 
 	// copy settings from dummy property to the deletion text source
@@ -282,6 +281,8 @@ static void git_stats_update(void *data, obs_data_t *settings)
 			bfree(info->data->trackedPaths[i]);
 			info->data->trackedPaths[i] = NULL;
 		}
+		bfree(info->data->trackedRepoMTimes);
+		info->data->trackedRepoMTimes = NULL;
 	}
 	if (info->data->numUntrackedFiles > 0) {
 		for (int i = 0; i < info->data->numUntrackedFiles; i++) {
@@ -297,12 +298,19 @@ static void git_stats_update(void *data, obs_data_t *settings)
 			obs_log(LOG_ERROR, "%s (%d): %s", __FILE__, __LINE__,
 				strerror(errno));
 		}
+		errno = 0;
+		info->data->trackedRepoMTimes =
+			bmalloc(sizeof(time_t) * MAXNUMPATHS);
+		if (errno) {
+			obs_log(LOG_ERROR, "%s (%d): %s", __FILE__, __LINE__,
+				strerror(errno));
+		}
 		for (int i = 0; i < MAXNUMPATHS; i++) {
 			info->data->trackedPaths[i] = NULL;
+			info->data->trackedRepoMTimes[i] = 0;
 		}
 	}
 	if (!info->data->untrackedFiles) {
-
 		errno = 0;
 		info->data->untrackedFiles =
 			bmalloc(sizeof(char *) * MAXNUMPATHS);
@@ -317,6 +325,7 @@ static void git_stats_update(void *data, obs_data_t *settings)
 	info->data->numTrackedFiles = 0;
 	info->data->numUntrackedFiles = 0;
 
+	//single repos
 	for (size_t i = 0; i < obs_data_array_count(dirArray); i++) {
 		obs_data_t *currItem = obs_data_array_item(dirArray, i);
 		const char *currVal = obs_data_get_string(currItem, "value");
@@ -328,17 +337,21 @@ static void git_stats_update(void *data, obs_data_t *settings)
 				strerror(errno));
 			obs_data_release(currItem);
 			info->data->trackedPaths[i] = NULL;
+			info->data->trackedRepoMTimes[i] = 0;
 			info->data->numTrackedFiles++;
 			continue;
 		}
 		if (checkPath((char *)currVal)) {
 			strncpy(info->data->trackedPaths[i], currVal,
 				strlen(currVal) + 1);
+			info->data->trackedRepoMTimes[i] =
+				getModifiedTime(info->data->trackedPaths[i]);
 			info->data->numTrackedFiles++;
 		}
 		obs_data_release(currItem);
 	}
 	obs_data_array_release(dirArray);
+  // directory of repos
 	if (strcmp(obs_data_get_string(settings, "repositories_directory"),
 		   "") &&
 	    (obs_data_get_string(settings, "repositories_directory") != NULL)) {
@@ -363,9 +376,6 @@ static void git_stats_update(void *data, obs_data_t *settings)
 		obs_data_release(dsSettings);
 	}
 	FORCE_UPDATE = true;
-	/*endTimer(timer);*/
-	/*printf("[BENCHMARK] Update Took %ld Ms\n", getElapsedTimeMs(timer));*/
-	/*freeTimer(&timer);*/
 }
 
 // render out the source
@@ -388,15 +398,14 @@ static void git_stats_tick(void *data, float seconds)
 	info->time_passed += seconds;
 	if (info->time_passed > info->data->delayAmount || INIT_RUN ||
 	    FORCE_UPDATE) {
+    bench* timer = startTimer();
 		if (checkUntrackedFiles(info->data) &&
 		    info->data->numUntrackedFiles) {
-			printf("SOURCE UPDATED BASED ON UNTRACKED\n");
 			obs_data_t *currSettings =
 				obs_source_get_settings(info->gitSource);
 			obs_source_update(info->gitSource, currSettings);
 			obs_data_release(currSettings);
 		}
-		/*bench *timer = startTimer();*/
 		obs_data_t *isSettings =
 			obs_source_get_settings(info->insertionSource);
 		obs_data_t *dsSettings =
@@ -769,10 +778,9 @@ static void git_stats_tick(void *data, float seconds)
 		if (dsSettings) {
 			obs_data_release(dsSettings);
 		}
-		/*endTimer(timer);*/
-		/*printf("[BENCHMARK] Tick Took: %ld Ms\n",*/
-		/*       getElapsedTimeMs(timer));*/
-		/*freeTimer(&(timer));*/
+    endTimer(timer);
+    getElapsedTimeMs_print(timer);
+    freeTimer(&timer);
 	}
 }
 

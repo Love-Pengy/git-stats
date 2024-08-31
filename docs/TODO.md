@@ -6,7 +6,7 @@
 - [TIMELINE](#timeline)
 - [TODO](#todo)
 - [NEW DIRECTION](#new-direction)
-  - [NEW DIRECTION DEBUGS](#new-direction-debugs)
+- [Speed Increase Idea](#speed-increase-idea)
 - [Formatting TODO](#formatting-todo)
 - [Optimistic](#optimistic)
 - [DEBUG NOTES](#debug-notes)
@@ -236,12 +236,34 @@ files bool from a ticked state~~
 - ~~make plugin update instantly~~ 
 - ~~remove all memory leaks~~ 
 - ~~fix terrible failure messages~~
-- change source to the private version so it doesn't show up in the sources list
+- ~~change source to the private version so it doesn't show up in the sources list~~
     - maybe figure out if theres not a working way to change text to red on error
-- center deletion number when insertion number is set as inactive
+        - later me problem 
+- ~~center deletion number when insertion number is set as inactive~~
 - allow unicode specification as a string
-- figure out a better way to do untracked files
-- write out install instructions
+    - also a later me problem 
+- ~~figure out a better way to do untracked files~~
+- ~~rite out install instructions~~
+- add time values that correspond to the last modified time of the repository folder
+    - NOTE: these should have the same indices as the repo itself in tracked files
+- only update values if the modified time has changed
+
+## Speed Increase Ideas
+- keep track of last time the repo folder was edited ignore if its not newer than previous
+    - downsides: 
+        - have to keep track of another array 
+    - upsides: 
+        - itll prolly be faster 
+        - can also extend this to check the overall repo directory as well 
+        - you avoid relying on git diff for everything everytime 
+- multithread the updating of untracked and tracked 
+    - downsides: 
+        - could have issues with locking resources if its not faster than the tick period 
+        - would still be bound by the speed of the actual functions called within the threads
+        - threads may work differently in OBS/you may have to use a special thread API  
+    - upsides: 
+        - I look smart 
+        - could potentially be extended to multithread other parts of the plugin 
 
 
 ## Formatting TODO

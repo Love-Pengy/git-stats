@@ -1,5 +1,5 @@
 #include "git-diff-interface.h"
-
+#include <time.h>
 #include <assert.h>
 #include <dirent.h>
 #include <errno.h>
@@ -10,11 +10,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-
+#include <sys/stat.h>
 #include "./support.h"
 
 #define MAXOUTPUTSIZE 1024
-#define MAX_LINE_LENGTH 255
 
 bool checkInsertions(char *input)
 {
@@ -285,7 +284,6 @@ void updateTrackedFiles(struct gitData *data)
 
 		snprintf(command, commandLength, "%s %s %s", "/usr/bin/git -C",
 			 data->trackedPaths[i], "diff --shortstat");
-
 		fp = popen(command, "r");
 		bfree(command);
 
@@ -305,9 +303,9 @@ void updateTrackedFiles(struct gitData *data)
 			}
 		}
 	}
-
 	data->added += insertions;
 	data->deleted += deletions;
+	printf("------------------------------------------\n");
 }
 
 void addGitRepoDir(struct gitData *data, char *repoDirPath)
@@ -413,6 +411,8 @@ void addGitRepoDir(struct gitData *data, char *repoDirPath)
 				}
 				strncpy(data->trackedPaths[data->numTrackedFiles],
 					tmpFilePath, (strlen(tmpFilePath) + 1));
+				data->trackedRepoMTimes[data->numTrackedFiles] =
+					getModifiedTime(tmpFilePath);
 				data->numTrackedFiles++;
 			}
 		}
@@ -476,6 +476,9 @@ void addGitRepoDir(struct gitData *data, char *repoDirPath)
 							[data->numTrackedFiles],
 						tmpFilePath,
 						(strlen(tmpFilePath) + 1));
+					data->trackedRepoMTimes
+						[data->numTrackedFiles] =
+						getModifiedTime(tmpFilePath);
 					data->numTrackedFiles++;
 				}
 			}
@@ -669,4 +672,17 @@ bool checkUntrackedFiles(struct gitData *data)
 		pclose(fp);
 	}
 	return (count == data->numUntrackedFiles) ? false : true;
+}
+
+time_t getModifiedTime(char *path)
+{
+	struct stat attr;
+	errno = 0;
+	stat(path, &attr);
+	if (errno) {
+		obs_log(LOG_DEBUG, "%s (%d): %s", __FILE__, __LINE__,
+			strerror(errno));
+		return (0);
+	}
+	return (mktime(localtime(&attr.st_mtim.tv_sec)));
 }
