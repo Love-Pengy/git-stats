@@ -252,8 +252,23 @@ bool checkPath(char *path)
 	return (true);
 }
 
-void updateTrackedFiles(struct gitData *data)
+// check if folder has been modified
+bool checkModifiedStatus(char *path, time_t *oldTime)
 {
+	if (path == NULL) {
+		return (false);
+	}
+	time_t newTime = getModifiedTime(path);
+	if (!difftime(newTime, (*oldTime))) {
+		return (false);
+	}
+	(*oldTime) = newTime;
+  printf("MOD: %s\n", path);
+	return (true);
+}
+
+void updateTrackedFiles(struct gitData *data, int init)
+{ 
 	if (data == NULL) {
 		obs_log(LOG_INFO, "%s (%d): %s", __FILE__, __LINE__,
 			"Data Struct Uninitialized");
@@ -266,6 +281,18 @@ void updateTrackedFiles(struct gitData *data)
 	for (int i = 0; i < data->numTrackedFiles; i++) {
 		FILE *fp;
 		if (!checkPath(data->trackedPaths[i])) {
+			continue;
+		}
+		if (!checkModifiedStatus(data->trackedPaths[i],
+					 &(data->trackedRepoMTimes[i])) &&
+		    !init) {
+			if (data->prevAddedValues_Tracked) {
+				data->added += data->prevAddedValues_Tracked[i];
+			}
+			if (data->prevDeletedValues_Tracked) {
+				data->deleted +=
+					data->prevDeletedValues_Tracked[i];
+			}
 			continue;
 		}
 		int commandLength =
@@ -296,15 +323,20 @@ void updateTrackedFiles(struct gitData *data)
 			bool insertionExists = checkInsertions(output);
 			bool deletionExists = checkDeletions(output);
 			if (insertionExists) {
-				insertions += getInsertionNumber(output);
+				insertions = getInsertionNumber(output);
+				data->prevAddedValues_Tracked[i] = insertions;
 			}
 			if (deletionExists) {
-				deletions += getDeletionNumber(output);
+				deletions = getDeletionNumber(output);
+				data->prevDeletedValues_Tracked[i] = deletions;
 			}
+			data->trackedRepoMTimes[i] =
+				getModifiedTime(data->trackedPaths[i]);
 		}
+		data->added += insertions;
+		data->deleted += deletions;
 	}
-	data->added += insertions;
-	data->deleted += deletions;
+
 	printf("------------------------------------------\n");
 }
 

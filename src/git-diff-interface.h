@@ -1,6 +1,6 @@
 #pragma once
 #include "./git-stats-source.h"
-void updateTrackedFiles(struct gitData *);
+void updateTrackedFiles(struct gitData *, int);
 void expandHomeDir(char **);
 void createUntrackedFiles(struct gitData *);
 long updateUntrackedFiles(struct gitData *);

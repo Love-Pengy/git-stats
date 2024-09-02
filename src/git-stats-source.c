@@ -23,6 +23,9 @@ static obs_data_t *defaultFont;
 // global for the initial startup
 static int INIT_RUN = 1;
 
+// global for running update on startup
+static int INIT_UPDATE = 1;
+
 // global for instant update
 static bool FORCE_UPDATE = false;
 
@@ -74,6 +77,8 @@ static void *git_stats_create(obs_data_t *settings, obs_source_t *source)
 	info->data->untrackedFiles = NULL;
 	info->data->numUntrackedFiles = 0;
 	info->data->trackedRepoMTimes = NULL;
+	info->data->prevAddedValues_Tracked = NULL;
+	info->data->prevDeletedValues_Tracked = NULL;
 	info->data->previousUntrackedAdded = 0;
 	info->data->added = 0;
 	info->data->deleted = 0;
@@ -158,6 +163,15 @@ static void git_stats_destroy(void *data)
 	if (info->data->trackedPaths) {
 		bfree(info->data->trackedPaths);
 		info->data->trackedPaths = NULL;
+	}
+	if (info->data->trackedRepoMTimes) {
+		bfree(info->data->trackedRepoMTimes);
+	}
+	if (info->data->prevAddedValues_Tracked) {
+		bfree(info->data->prevAddedValues_Tracked);
+	}
+	if (info->data->prevDeletedValues_Tracked) {
+		bfree(info->data->prevDeletedValues_Tracked);
 	}
 
 	bfree(info->data);
@@ -281,6 +295,10 @@ static void git_stats_update(void *data, obs_data_t *settings)
 			bfree(info->data->trackedPaths[i]);
 			info->data->trackedPaths[i] = NULL;
 		}
+		bfree(info->data->prevAddedValues_Tracked);
+		info->data->prevAddedValues_Tracked = NULL;
+		bfree(info->data->prevDeletedValues_Tracked);
+		info->data->prevDeletedValues_Tracked = NULL;
 		bfree(info->data->trackedRepoMTimes);
 		info->data->trackedRepoMTimes = NULL;
 	}
@@ -305,8 +323,24 @@ static void git_stats_update(void *data, obs_data_t *settings)
 			obs_log(LOG_ERROR, "%s (%d): %s", __FILE__, __LINE__,
 				strerror(errno));
 		}
+		errno = 0;
+		info->data->prevAddedValues_Tracked =
+			bmalloc(sizeof(int) * MAXNUMPATHS);
+		if (errno) {
+			obs_log(LOG_ERROR, "%s (%d): %s", __FILE__, __LINE__,
+				strerror(errno));
+		}
+		errno = 0;
+		info->data->prevDeletedValues_Tracked =
+			bmalloc(sizeof(int) * MAXNUMPATHS);
+		if (errno) {
+			obs_log(LOG_ERROR, "%s (%d): %s", __FILE__, __LINE__,
+				strerror(errno));
+		}
 		for (int i = 0; i < MAXNUMPATHS; i++) {
 			info->data->trackedPaths[i] = NULL;
+			info->data->prevAddedValues_Tracked[i] = 0;
+      info->data->prevDeletedValues_Tracked[i] = 0;
 			info->data->trackedRepoMTimes[i] = 0;
 		}
 	}
@@ -351,7 +385,7 @@ static void git_stats_update(void *data, obs_data_t *settings)
 		obs_data_release(currItem);
 	}
 	obs_data_array_release(dirArray);
-  // directory of repos
+	// directory of repos
 	if (strcmp(obs_data_get_string(settings, "repositories_directory"),
 		   "") &&
 	    (obs_data_get_string(settings, "repositories_directory") != NULL)) {
@@ -398,7 +432,6 @@ static void git_stats_tick(void *data, float seconds)
 	info->time_passed += seconds;
 	if (info->time_passed > info->data->delayAmount || INIT_RUN ||
 	    FORCE_UPDATE) {
-    bench* timer = startTimer();
 		if (checkUntrackedFiles(info->data) &&
 		    info->data->numUntrackedFiles) {
 			obs_data_t *currSettings =
@@ -526,7 +559,12 @@ static void git_stats_tick(void *data, float seconds)
 		} else {
 			info->data->deleted = 0;
 			info->data->added = 0;
-			updateTrackedFiles(info->data);
+      bench *timer = startTimer();
+			updateTrackedFiles(info->data, INIT_UPDATE);
+      endTimer(timer);
+      getElapsedTimeMs_print(timer);
+      freeTimer(&timer);
+      INIT_UPDATE &= 0;
 			if (!checkUntrackedFileLock(info->data)) {
 				info->data->previousUntrackedAdded =
 					updateUntrackedFiles(info->data);
@@ -778,9 +816,6 @@ static void git_stats_tick(void *data, float seconds)
 		if (dsSettings) {
 			obs_data_release(dsSettings);
 		}
-    endTimer(timer);
-    getElapsedTimeMs_print(timer);
-    freeTimer(&timer);
 	}
 }
 

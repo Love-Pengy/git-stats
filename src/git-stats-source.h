@@ -8,6 +8,8 @@ struct gitData {
 	char **trackedPaths;
 	int numTrackedFiles;
   time_t* trackedRepoMTimes;
+  int* prevAddedValues_Tracked;
+  int* prevDeletedValues_Tracked;
   char **untrackedFiles;
   int numUntrackedFiles;
   bool deletionEnabled;
