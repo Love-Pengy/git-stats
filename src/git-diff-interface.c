@@ -1,4 +1,3 @@
-#include "git-diff-interface.h"
 #include <time.h>
 #include <assert.h>
 #include <dirent.h>
@@ -11,7 +10,9 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include "git-diff-interface.h"
 #include "./support.h"
+#include "./benchmarking/timeElapsed.h"
 
 #define MAXOUTPUTSIZE 1024
 
@@ -263,12 +264,11 @@ bool checkModifiedStatus(char *path, time_t *oldTime)
 		return (false);
 	}
 	(*oldTime) = newTime;
-  printf("MOD: %s\n", path);
 	return (true);
 }
 
 void updateTrackedFiles(struct gitData *data, int init)
-{ 
+{
 	if (data == NULL) {
 		obs_log(LOG_INFO, "%s (%d): %s", __FILE__, __LINE__,
 			"Data Struct Uninitialized");
@@ -279,6 +279,8 @@ void updateTrackedFiles(struct gitData *data, int init)
 	long insertions = 0;
 	long deletions = 0;
 	for (int i = 0; i < data->numTrackedFiles; i++) {
+		insertions = 0;
+		deletions = 0;
 		FILE *fp;
 		if (!checkPath(data->trackedPaths[i])) {
 			continue;
@@ -295,10 +297,9 @@ void updateTrackedFiles(struct gitData *data, int init)
 			}
 			continue;
 		}
-		int commandLength =
-			(strlen("/usr/bin/git -C ") +
-			 strlen(data->trackedPaths[i]) +
-			 strlen(" diff --no-pager --shortstat") + 1);
+		int commandLength = (strlen("/usr/bin/git -C ") +
+				     strlen(data->trackedPaths[i]) +
+				     strlen(" diff --shortstat") + 1);
 
 		errno = 0;
 		char *command = bmalloc(sizeof(char) * commandLength);
@@ -317,7 +318,11 @@ void updateTrackedFiles(struct gitData *data, int init)
 		if (fp == NULL) {
 			continue;
 		}
+		bench *timer = startTimer();
 		char *fileOutput = fgets(output, sizeof(output), fp);
+		endTimer(timer);
+		getElapsedTimeMs_print(timer);
+		freeTimer(&timer);
 		pclose(fp);
 		if (fileOutput) {
 			bool insertionExists = checkInsertions(output);
@@ -336,7 +341,6 @@ void updateTrackedFiles(struct gitData *data, int init)
 		data->added += insertions;
 		data->deleted += deletions;
 	}
-
 	printf("------------------------------------------\n");
 }
 
@@ -655,7 +659,14 @@ long updateUntrackedFiles(struct gitData *data)
 	}
 	long val = 0;
 	for (int i = 0; i < data->numUntrackedFiles; i++) {
+		printf("WE CHECKED\n");
+		//bench *timer = startTimer();
 		val += getLinesInFile(data->untrackedFiles[i]);
+    /*
+		endTimer(timer);
+		getElapsedTimeNs_print(timer);
+		freeTimer(&timer);
+    */
 	}
 	data->added += val;
 	return (val);

@@ -3,13 +3,15 @@
 #include <obs-source.h>
 #include <time.h>
 
-// struct obs_source_info git_stats_source;
+#define MAXNUMPATHS 100
+//int MAXNUMPATHS = MNUMPATHS;
+
 struct gitData {
 	char **trackedPaths;
 	int numTrackedFiles;
-  time_t* trackedRepoMTimes;
-  int* prevAddedValues_Tracked;
-  int* prevDeletedValues_Tracked;
+  time_t trackedRepoMTimes[MAXNUMPATHS];
+  int prevAddedValues_Tracked[MAXNUMPATHS];
+  int prevDeletedValues_Tracked[MAXNUMPATHS];
   char **untrackedFiles;
   int numUntrackedFiles;
   bool deletionEnabled;

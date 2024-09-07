@@ -6,7 +6,7 @@
 - [TIMELINE](#timeline)
 - [TODO](#todo)
 - [NEW DIRECTION](#new-direction)
-- [Speed Increase Idea](#speed-increase-idea)
+- [Speed Increase Ideas](#speed-increase-ideas)
 - [Formatting TODO](#formatting-todo)
 - [Optimistic](#optimistic)
 - [DEBUG NOTES](#debug-notes)
@@ -247,6 +247,7 @@ files bool from a ticked state~~
 - add time values that correspond to the last modified time of the repository folder
     - NOTE: these should have the same indices as the repo itself in tracked files
 - only update values if the modified time has changed
+- try and use find -maxdepth 1 -type d
 
 ## Speed Increase Ideas
 - keep track of last time the repo folder was edited ignore if its not newer than previous
