@@ -14,6 +14,9 @@ struct gitData {
   int prevDeletedValues_Tracked[MAXNUMPATHS];
   char **untrackedFiles;
   int numUntrackedFiles;
+  time_t untrackedRepoMTimes[MAXNUMPATHS];
+  int prevAddedValues_Untracked[MAXNUMPATHS];
+  long previousUntrackedAdded;
   bool deletionEnabled;
   bool deletionSymbolEnabled;
   bool insertionEnabled;
@@ -21,6 +24,5 @@ struct gitData {
   int delayAmount;
   long added;
   long deleted;
-  long previousUntrackedAdded;
   char *overloadChar;
 };

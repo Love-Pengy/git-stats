@@ -318,11 +318,7 @@ void updateTrackedFiles(struct gitData *data, int init)
 		if (fp == NULL) {
 			continue;
 		}
-		bench *timer = startTimer();
 		char *fileOutput = fgets(output, sizeof(output), fp);
-		endTimer(timer);
-		getElapsedTimeMs_print(timer);
-		freeTimer(&timer);
 		pclose(fp);
 		if (fileOutput) {
 			bool insertionExists = checkInsertions(output);
@@ -341,7 +337,6 @@ void updateTrackedFiles(struct gitData *data, int init)
 		data->added += insertions;
 		data->deleted += deletions;
 	}
-	printf("------------------------------------------\n");
 }
 
 void addGitRepoDir(struct gitData *data, char *repoDirPath)
@@ -650,7 +645,7 @@ void createUntrackedFiles(struct gitData *data)
 	}
 }
 
-long updateUntrackedFiles(struct gitData *data)
+long updateUntrackedFiles(struct gitData *data, int init)
 {
 	if (data == NULL) {
 		obs_log(LOG_INFO, "%s (%d): %s", __FILE__, __LINE__,
@@ -658,15 +653,20 @@ long updateUntrackedFiles(struct gitData *data)
 		return (0);
 	}
 	long val = 0;
+	long tmpAdded = 0;
 	for (int i = 0; i < data->numUntrackedFiles; i++) {
-		printf("WE CHECKED\n");
-		//bench *timer = startTimer();
-		val += getLinesInFile(data->untrackedFiles[i]);
-    /*
-		endTimer(timer);
-		getElapsedTimeNs_print(timer);
-		freeTimer(&timer);
-    */
+		if (!checkModifiedStatus(data->untrackedFiles[i],
+					 &(data->untrackedRepoMTimes[i])) &&
+		    !init) {
+			if (data->prevAddedValues_Untracked) {
+				data->added +=
+					data->prevAddedValues_Untracked[i];
+			}
+			continue;
+		}
+		tmpAdded = getLinesInFile(data->untrackedFiles[i]);
+		val += tmpAdded;
+		data->prevAddedValues_Untracked[i] = tmpAdded;
 	}
 	data->added += val;
 	return (val);
@@ -675,7 +675,6 @@ long updateUntrackedFiles(struct gitData *data)
 //check if untracked files needs an update
 bool checkUntrackedFiles(struct gitData *data)
 {
-
 	if (data == NULL) {
 		return (false);
 	}

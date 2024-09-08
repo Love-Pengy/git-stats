@@ -303,6 +303,8 @@ static void git_stats_update(void *data, obs_data_t *settings)
 			info->data->prevAddedValues_Tracked[i] = 0;
 			info->data->prevDeletedValues_Tracked[i] = 0;
 			info->data->trackedRepoMTimes[i] = 0;
+			info->data->prevAddedValues_Untracked[i] = 0;
+			info->data->untrackedRepoMTimes[i] = 0;
 		}
 	}
 	if (!info->data->untrackedFiles) {
@@ -393,7 +395,6 @@ static void git_stats_tick(void *data, float seconds)
 	info->time_passed += seconds;
 	if (info->time_passed > info->data->delayAmount || INIT_RUN ||
 	    FORCE_UPDATE) {
-    bench *timer = startTimer();
 		if (checkUntrackedFiles(info->data) &&
 		    info->data->numUntrackedFiles) {
 			obs_data_t *currSettings =
@@ -522,14 +523,18 @@ static void git_stats_tick(void *data, float seconds)
 			info->data->deleted = 0;
 			info->data->added = 0;
 			updateTrackedFiles(info->data, INIT_UPDATE);
-			INIT_UPDATE &= 0;
+			bench *timer = startTimer();
 			if (!checkUntrackedFileLock(info->data)) {
 				info->data->previousUntrackedAdded =
-					updateUntrackedFiles(info->data);
+					updateUntrackedFiles(info->data, INIT_UPDATE);
 			} else {
 				info->data->added +=
 					info->data->previousUntrackedAdded;
 			}
+      INIT_UPDATE &= 0;
+      endTimer(timer);
+      getElapsedTimeMs_print(timer);
+      freeTimer(&timer);
 		}
 		int spaceCheck = (info->data->insertionEnabled << 1) |
 				 info->data->deletionEnabled;
@@ -774,9 +779,6 @@ static void git_stats_tick(void *data, float seconds)
 		if (dsSettings) {
 			obs_data_release(dsSettings);
 		}
-    endTimer(timer);
-    getElapsedTimeMs_print(timer);
-    freeTimer(&timer);
 	}
 }
 
