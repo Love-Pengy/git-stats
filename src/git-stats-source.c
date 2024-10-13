@@ -5,6 +5,7 @@
 #include <obs-module.h>
 #include <obs-source.h>
 #include <stdlib.h>
+#include <util/threading.h>
 
 #include "./git-diff-interface.h"
 #include "support.h"
@@ -388,6 +389,8 @@ static void git_stats_render(void *data, gs_effect_t *effect)
 // time elapsed passed in)
 static void git_stats_tick(void *data, float seconds)
 {
+  os_set_thread_name("gitStatsTickThread");  
+	profile_start("git_stats_tick");
 	struct gitStatsInfo *info = data;
 	if (!obs_source_showing(info->gitSource)) {
 		return;
@@ -526,15 +529,16 @@ static void git_stats_tick(void *data, float seconds)
 			bench *timer = startTimer();
 			if (!checkUntrackedFileLock(info->data)) {
 				info->data->previousUntrackedAdded =
-					updateUntrackedFiles(info->data, INIT_UPDATE);
+					updateUntrackedFiles(info->data,
+							     INIT_UPDATE);
 			} else {
 				info->data->added +=
 					info->data->previousUntrackedAdded;
 			}
-      INIT_UPDATE &= 0;
-      endTimer(timer);
-      getElapsedTimeMs_print(timer);
-      freeTimer(&timer);
+			INIT_UPDATE &= 0;
+			endTimer(timer);
+			getElapsedTimeMs_print(timer);
+			freeTimer(&timer);
 		}
 		int spaceCheck = (info->data->insertionEnabled << 1) |
 				 info->data->deletionEnabled;
@@ -780,6 +784,8 @@ static void git_stats_tick(void *data, float seconds)
 			obs_data_release(dsSettings);
 		}
 	}
+	profile_end("git_stats_tick");
+	profile_reenable_thread();
 }
 
 // callback for the test_button property
