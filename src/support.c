@@ -107,6 +107,9 @@ bool checkRepoExists(char **repos, int amtRepos, char *checkPath)
 // extracts first unicode character from a given string
 char *extractUnicode(const char *input)
 {
+  if(!strcmp(input, "") || !input){
+    return(NULL);
+  }
 	errno = 0;
 	char *buff = bmalloc(sizeof(char) * MB_CUR_MAX);
 	if (errno) {

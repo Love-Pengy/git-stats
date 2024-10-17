@@ -250,17 +250,11 @@ static void git_stats_update(void *data, obs_data_t *settings)
 	obs_data_set_bool(dsSettings, "drop_shadow",
 			  obs_data_get_bool(settings, "drop_shadow"));
 
-	if (strcmp(obs_data_get_string(settings, "overload_char"), "") &&
-	    obs_data_get_string(settings, "overload_char")) {
-		char *unicode = extractUnicode(
-			obs_data_get_string(settings, "overload_char"));
-		if (unicode) {
-			strcpy(info->data->overloadChar, unicode);
-			bfree(unicode);
-		} else {
-			strncpy(info->data->overloadChar, DEFAULT_OVERLOAD_CHAR,
-				strlen(DEFAULT_OVERLOAD_CHAR) + 1);
-		}
+	char *unicode =
+		extractUnicode(obs_data_get_string(settings, "overload_char"));
+	if (unicode) {
+		strcpy(info->data->overloadChar, unicode);
+		bfree(unicode);
 	} else {
 		strncpy(info->data->overloadChar, DEFAULT_OVERLOAD_CHAR,
 			strlen(DEFAULT_OVERLOAD_CHAR) + 1);
@@ -351,12 +345,12 @@ static void git_stats_update(void *data, obs_data_t *settings)
 	obs_data_array_release(dirArray);
 	// directory of repos
 	if (strcmp(obs_data_get_string(settings, "repositories_directory"),
-		   "") &&
-	    (obs_data_get_string(settings, "repositories_directory") != NULL)) {
+		   "")) {
 		addGitRepoDir(info->data,
 			      (char *)obs_data_get_string(
 				      settings, "repositories_directory"));
 	}
+  
 	if (obs_data_get_bool(settings, "untracked_files")) {
 		createUntrackedFiles(info->data);
 	}
@@ -389,7 +383,7 @@ static void git_stats_render(void *data, gs_effect_t *effect)
 // time elapsed passed in)
 static void git_stats_tick(void *data, float seconds)
 {
-  os_set_thread_name("gitStatsTickThread");  
+	//os_set_thread_name("gitStatsTickThread");
 	profile_start("git_stats_tick");
 	struct gitStatsInfo *info = data;
 	if (!obs_source_showing(info->gitSource)) {
@@ -526,7 +520,6 @@ static void git_stats_tick(void *data, float seconds)
 			info->data->deleted = 0;
 			info->data->added = 0;
 			updateTrackedFiles(info->data, INIT_UPDATE);
-			bench *timer = startTimer();
 			if (!checkUntrackedFileLock(info->data)) {
 				info->data->previousUntrackedAdded =
 					updateUntrackedFiles(info->data,
@@ -536,9 +529,6 @@ static void git_stats_tick(void *data, float seconds)
 					info->data->previousUntrackedAdded;
 			}
 			INIT_UPDATE &= 0;
-			endTimer(timer);
-			getElapsedTimeMs_print(timer);
-			freeTimer(&timer);
 		}
 		int spaceCheck = (info->data->insertionEnabled << 1) |
 				 info->data->deletionEnabled;

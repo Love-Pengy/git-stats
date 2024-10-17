@@ -3,8 +3,11 @@
 #include <obs-source.h>
 #include <time.h>
 
+// max paths we're going to allow for the plugin
 #define MAXNUMPATHS 100
-//int MAXNUMPATHS = MNUMPATHS;
+
+// max absolute path length in bytes
+#define MAXPATHLENGTH 256
 
 struct gitData {
 	char **trackedPaths;
