@@ -9,7 +9,6 @@
 
 #include "./git-diff-interface.h"
 #include "support.h"
-#include "./benchmarking/timeElapsed.h"
 
 #define OVERLOAD_VAL 9999
 #define MAX_OVERLOAD 4

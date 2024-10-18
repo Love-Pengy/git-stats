@@ -11,8 +11,6 @@
 ### General 
 - get rid of some of the obs_log warnings/errors they're everywhere and giving some overhead 
 
-
-
 **TODO**
 ```C 
     //tracked paths and untracked files should be allocated on the stack instead of the heap
@@ -109,6 +107,61 @@
         - this potentially makes code significantly easier to read in terms of the tick function itself 
         - but this still requires some sort of optimizations within the new functions we create 
         - this potentially makes code significantly easier to read in terms of the tick function itself 
+        - potential function splits
+            - checkUpdateUntracked 
+                - checking to see if we need to update the source because an untracked file has been added
+                - params: 
+                    - info->data
+                    - info->data->numUntrackedFiles
+                - return:
+                    - void
+            - executeTick
+                - applying everything to the plugin given the settings 
+                - params: 
+                    - isSettings 
+                    - dsSettings
+                    - gsSettings
+                    - testMode
+                    - info->data
+                    - INIT_UPDATE 
+                - return: 
+                    - void
+                - overall idea: 
+                    - get all of the data we need from the respective settings **ONCE** 
+                    - create a mapping given the bools from the settings  
+                    - from this mappign we create a switch case with all of the possibilities
+                    - ONLY CALL UPDATE ONCE FOR ALL EXTERNAL SOURCES (deletionSource & insertionSource) 
+
+                - data for mapping
+                    - INIT_UPDATE 
+                        - passed in 
+                        - set to false after the entire switch everytime
+                    - trackedPaths/numTrackedFiles 
+                        - another if statement
+                    mapping structure: XXXX
+                        0000 -> default
+                        0001 -> default
+                        0100 -> default  
+                        0101 -> default 
+                         
+                        - bit 1:  insertionEnabled
+                        - bit 2: insertionSymbolEnabled
+                        - bit 3: deletionEnabled
+                        - bit 4: deletionSymbolEnabled
+                        **Where bit 1 is the LSB**
+                    - insertionEnabled 
+                    - insertionSymbolEnabled
+                    - deletionEnabled 
+                    - deletionSymbolEnabled
+                - modes for data consists of:  
+                    - testMode
+                    - no input 
+                    - values
+                    mapping structure: XX
+                        - bit 1: testMode
+                        - bit 2: no input
+                        **Where bit 1 is the LSB**
+                    
     - we just save the settings data within the gitData structure so we don't call the getter functions over and over  
         - all this would require is changing vars  
         - *NOTE* Be careful as both the tick and update functions require this and both can be running in seperate threads 
