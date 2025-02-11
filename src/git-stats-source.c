@@ -81,6 +81,7 @@ static void *git_stats_create(obs_data_t *settings, obs_source_t *source)
 	info->data->insertionSymbolEnabled = true;
 	info->data->deletionSymbolEnabled = true;
 	errno = 0;
+
 	// bmalloc 8 bytes for each unicode character
 	info->data->overloadChar = bmalloc(16);
 	if (errno) {
