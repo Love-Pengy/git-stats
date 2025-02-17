@@ -31,6 +31,7 @@ static void git_stats_update(void *, obs_data_t *);
 static void git_stats_get_defaults(obs_data_t *);
 
 static obs_properties_t *git_stats_properties(void *);
+
 struct gitStatsInfo {
 	obs_source_t *insertionSource;
 	// pointer to the text source
