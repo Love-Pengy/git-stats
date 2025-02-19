@@ -1,6 +1,7 @@
 # Implementation Path For git-stats Refactor 
 
 ## INIT
+
 + First allocate the needed structs for both shared memory and the structs accessed by the parent 
 + start up text sources 
 + init the threads that will update the diff info and idle it 
@@ -37,10 +38,14 @@
 
 ### TODO
 
-+ research faster ways to get git diff info
-    + maybe git diff alternatives?
 + see if it's possible to just keep a shell open so I eliminate the opening and closing of it
 *this is going to take very long*
+    + popen seems to be the best I'm going to get, but make sure when I read the buffer is a multiple of 512
+   
++ ~~research whether or not I should use processes or threads for the updaters~~
+    + **use threads** 
+
++ update fork with the contents of the obs-plugintemplate repo
 + **move to pthreads** 
 + update ui and settings to specify slow, normal, and quick update times 
 + go back and rework everything to be readable and make sense  
