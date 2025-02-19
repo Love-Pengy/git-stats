@@ -1,6 +1,6 @@
 # Exclude everything
 /*
-
+*/.null-ls*
 # Except for default project files
 !/.github
 !/build-aux
@@ -15,7 +15,9 @@
 !CMakePresets.json
 !LICENSE
 !README.md
-
+!/docs
+!/buildProject.sh
+!/dev
 # Exclude lock files
 *.lock.json
 
@@ -24,3 +26,5 @@
 
 # Exclude CMake build number cache
 /cmake/.CMakeBuildNumber
+
+a.out

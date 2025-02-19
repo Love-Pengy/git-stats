@@ -70,7 +70,6 @@ jobs:
           else
             echo "pluginName=${plugin_name}" >> $GITHUB_OUTPUT
           fi
-
   macos-build:
     name: Build for macOS 🍏
     runs-on: macos-15
@@ -242,7 +241,6 @@ jobs:
         with:
           name: ${{ steps.setup.outputs.pluginName }}-${{ steps.setup.outputs.pluginVersion }}-${{ matrix.os }}-x86_64-${{ needs.check-event.outputs.commitHash }}-dbgsym
           path: ${{ github.workspace }}/release/${{ steps.setup.outputs.pluginName }}-${{ steps.setup.outputs.pluginVersion }}-x86_64*-dbgsym.ddeb
-
       - uses: actions/cache/save@v4
         if: github.event_name != 'pull_request' && steps.ccache-cache.outputs.cache-hit != 'true'
         with:

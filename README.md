@@ -1,59 +1,51 @@
-# OBS Plugin Template
+# Git Stats
 
-## Introduction
+<!--toc:start-->
+- [Git Stats](#git-stats)
+  - [Features](#features)
+  - [Requirements](#requirements)
+  - [Installation](#installation)
+      - [Debian Based Systems](#debian-based-systems)
+      - [Other Systems](#other-systems)
+<!--toc:end-->
 
-The plugin template is meant to be used as a starting point for OBS Studio plugin development. It includes:
+This plugin is an integrated implementation of the [git-linestats-widget](https://github.com/BryanHaley/git-linestats-widget), designed to automate and streamline your git statistics display with [OBS](https://github.com/obsproject/obs-studio).
 
-* Boilerplate plugin source code
-* A CMake project file
-* GitHub Actions workflows and repository actions
+**NOTE:** This plugin is currently only available for Linux. Support for other operating systems may be added in the future.
 
-## Supported Build Environments
+## Features
 
-| Platform  | Tool   |
-|-----------|--------|
-| Windows   | Visal Studio 17 2022 |
-| macOS     | XCode 16.0 |
-| Windows, macOS  | CMake 3.30.5 |
-| Ubuntu 24.04 | CMake 3.28.3 |
-| Ubuntu 24.04 | `ninja-build` |
-| Ubuntu 24.04 | `pkg-config`
-| Ubuntu 24.04 | `build-essential` |
+- **Tracked and Untracked Files**: Specify which files to track and display.
+- **Customizable Text**: Modify font and colors to suit your preferences.
+- **Anti-Aliasing**: Ensure smooth and visually appealing text rendering.
+- **Future Enhancements**: More features are planned and will be added soon. Feel free to open an issue with a freature request or take a look at the current [TODO](https://github.com/Love-Pengy/git-stats/issues/4) list.
 
-## Quick Start
+## Requirements
 
-An absolute bare-bones [Quick Start Guide](https://github.com/obsproject/obs-plugintemplate/wiki/Quick-Start-Guide) is available in the wiki.
+- Linux system
+- A monospaced [nerd font](https://github.com/ryanoasis/nerd-fonts) 
 
-## Documentation
+## Installation
+#### Debian Based Systems
+- Download git-stats-*-x86_64-linux-gnu.deb from the [Releases](https://github.com/Love-Pengy/git-stats/releases/) Page
+- Install With ```apt install ./git-stats-*-x86_64-linux-gnu.deb```
+    - This method will install the plugin in the usr directory of OBS
 
-All documentation can be found in the [Plugin Template Wiki](https://github.com/obsproject/obs-plugintemplate/wiki).
+#### Other Systems
 
-Suggested reading to get up and running:
+- Download git-stats-*-source.tar.xz from the [Releases](https://github.com/Love-Pengy/git-stats/releases/) page
+- Extract with ```tar -xf git-stats-*-source.tar.xz```
+- Change directory to the directory you just downloaded with ```cd git-stats-*-source```
+- Run the following commands to build the project: 
 
-* [Getting started](https://github.com/obsproject/obs-plugintemplate/wiki/Getting-Started)
-* [Build system requirements](https://github.com/obsproject/obs-plugintemplate/wiki/Build-System-Requirements)
-* [Build system options](https://github.com/obsproject/obs-plugintemplate/wiki/CMake-Build-System-Options)
+    ```
+    cmake --preset linux-x86_64 -G Ninja '-DQT_VERSION=6' '-DCMAKE_BUILD_TYPE=RelWithDebInfo' '-DCMAKE_INSTALL_PREFIX=/usr'
+    cmake --build --preset linux-x86_64 --config RelWithDebInfo --parallel
+    cmake --install build_x86_64 --prefix ./release/RelWithDebInfo
+    mkdir -p ./release/RelWithDebInfo/share/obs/obs-plugins/git-stats/bin/64bit
+    cp ./release/RelWithDebInfo/lib/x86_64-linux-gnu/obs-plugins/git-stats.so ./release/RelWithDebInfo/share/obs/obs-plugins/git-stats/bin/64bit    
+    ```
 
-## GitHub Actions & CI
+- Copy the directory into your OBS plugin directory: ```cp -r ./release/RelWithDebInfo/share/obs/obs-plugins/git-stats ~/.config/obs-studio/plugins```
 
-Default GitHub Actions workflows are available for the following repository actions:
-
-* `push`: Run for commits or tags pushed to `master` or `main` branches.
-* `pr-pull`: Run when a Pull Request has been pushed or synchronized.
-* `dispatch`: Run when triggered by the workflow dispatch in GitHub's user interface.
-* `build-project`: Builds the actual project and is triggered by other workflows.
-* `check-format`: Checks CMake and plugin source code formatting and is triggered by other workflows.
-
-The workflows make use of GitHub repository actions (contained in `.github/actions`) and build scripts (contained in `.github/scripts`) which are not needed for local development, but might need to be adjusted if additional/different steps are required to build the plugin.
-
-### Retrieving build artifacts
-
-Successful builds on GitHub Actions will produce build artifacts that can be downloaded for testing. These artifacts are commonly simple archives and will not contain package installers or installation programs.
-
-### Building a Release
-
-To create a release, an appropriately named tag needs to be pushed to the `main`/`master` branch using semantic versioning (e.g., `12.3.4`, `23.4.5-beta2`). A draft release will be created on the associated repository with generated installer packages or installation programs attached as release artifacts.
-
-## Signing and Notarizing on macOS
-
-Basic concepts of codesigning and notarization on macOS are explained in the correspodning [Wiki article](https://github.com/obsproject/obs-plugintemplate/wiki/Codesigning-On-macOS) which has a specific section for the [GitHub Actions setup](https://github.com/obsproject/obs-plugintemplate/wiki/Codesigning-On-macOS#setting-up-code-signing-for-github-actions).
+**NOTE:** If the ~/.config/obs-studio/plugins directory does not exist just create it
