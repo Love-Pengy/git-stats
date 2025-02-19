@@ -49,4 +49,3 @@ This plugin is an integrated implementation of the [git-linestats-widget](https:
 - Copy the directory into your OBS plugin directory: ```cp -r ./release/RelWithDebInfo/share/obs/obs-plugins/git-stats ~/.config/obs-studio/plugins```
 
 **NOTE:** If the ~/.config/obs-studio/plugins directory does not exist just create it
-
