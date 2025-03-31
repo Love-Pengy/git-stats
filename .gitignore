@@ -18,13 +18,19 @@
 !/docs
 !/buildProject.sh
 !/dev
+!/tests
 # Exclude lock files
 *.lock.json
 
 # Exclude macOS legacy resource forks
 .DS_Store
 
+*/.env
+
 # Exclude CMake build number cache
 /cmake/.CMakeBuildNumber
 
+tests/summary
+
 a.out
+tests/.venv
