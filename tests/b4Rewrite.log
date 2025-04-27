@@ -1,0 +1,99 @@
+[AVG PERFORMANCE] (no_untracked.json) min: 0ms max: 44.165ms 99th%: 35.943ms median: 0.002ms
+[SUMMARY] (no_untracked.json) [92m passed: 21 [91m failed: 0[0m
+[AVG PERFORMANCE] (no_untracked.json) min: 0ms max: 50.273ms 99th%: 16.174ms median: 0.002ms
+[SUMMARY] (no_untracked.json) [92m passed: 20 [91m failed: 0[0m
+[AVG PERFORMANCE] (no_untracked.json) min: 0ms max: 45.537ms 99th%: 37.341ms median: 0.002ms
+[SUMMARY] (no_untracked.json) [92m passed: 20 [91m failed: 0[0m
+[AVG PERFORMANCE] (no_untracked.json) min: 0ms max: 45.615ms 99th%: 36.991ms median: 0.002ms
+[SUMMARY] (no_untracked.json) [92m passed: 20 [91m failed: 0[0m
+[AVG PERFORMANCE] (no_untracked.json) min: 0ms max: 44.824ms 99th%: 38.535ms median: 0.002ms
+[SUMMARY] (no_untracked.json) [92m passed: 20 [91m failed: 0[0m
+[AVG PERFORMANCE] (no_untracked.json) min: 0ms max: 45.282ms 99th%: 10.549ms median: 0.002ms
+[SUMMARY] (no_untracked.json) [92m passed: 20 [91m failed: 0[0m
+[AVG PERFORMANCE] (no_untracked.json) min: 0ms max: 44.232ms 99th%: 18.395ms median: 0.002ms
+[SUMMARY] (no_untracked.json) [92m passed: 21 [91m failed: 0[0m
+[AVG PERFORMANCE] (no_untracked.json) min: 0ms max: 43.484ms 99th%: 36.884ms median: 0.002ms
+[SUMMARY] (no_untracked.json) [92m passed: 20 [91m failed: 0[0m
+[AVG PERFORMANCE] (no_untracked.json) min: 0ms max: 42.549ms 99th%: 36.923ms median: 0.002ms
+[SUMMARY] (no_untracked.json) [92m passed: 20 [91m failed: 0[0m
+[AVG PERFORMANCE] (no_untracked.json) min: 0ms max: 46.406ms 99th%: 35.151ms median: 0.002ms
+[SUMMARY] (no_untracked.json) [92m passed: 20 [91m failed: 0[0m
+[AVG PERFORMANCE] (no_untracked_w_dir.json) min: 0ms max: 456.499ms 99th%: 444.96ms median: 0.002ms
+[SUMMARY] (no_untracked_w_dir.json) [92m passed: 20 [91m failed: 0[0m
+[AVG PERFORMANCE] (no_untracked_w_dir.json) min: 0ms max: 491.378ms 99th%: 445.049ms median: 0.002ms
+[SUMMARY] (no_untracked_w_dir.json) [92m passed: 20 [91m failed: 0[0m
+[AVG PERFORMANCE] (no_untracked_w_dir.json) min: 0ms max: 487.551ms 99th%: 447.246ms median: 0.002ms
+[SUMMARY] (no_untracked_w_dir.json) [92m passed: 20 [91m failed: 0[0m
+[AVG PERFORMANCE] (no_untracked_w_dir.json) min: 0ms max: 496.876ms 99th%: 444.561ms median: 0.002ms
+[SUMMARY] (no_untracked_w_dir.json) [92m passed: 20 [91m failed: 0[0m
+[AVG PERFORMANCE] (no_untracked_w_dir.json) min: 0ms max: 517.806ms 99th%: 442ms median: 0.002ms
+[SUMMARY] (no_untracked_w_dir.json) [92m passed: 20 [91m failed: 0[0m
+[AVG PERFORMANCE] (no_untracked_w_dir.json) min: 0ms max: 514.097ms 99th%: 445.193ms median: 0.002ms
+[SUMMARY] (no_untracked_w_dir.json) [92m passed: 20 [91m failed: 0[0m
+[AVG PERFORMANCE] (no_untracked_w_dir.json) min: 0ms max: 491.382ms 99th%: 444.885ms median: 0.002ms
+[SUMMARY] (no_untracked_w_dir.json) [92m passed: 20 [91m failed: 0[0m
+[AVG PERFORMANCE] (no_untracked_w_dir.json) min: 0ms max: 516.073ms 99th%: 448.177ms median: 0.002ms
+[SUMMARY] (no_untracked_w_dir.json) [92m passed: 20 [91m failed: 0[0m
+[AVG PERFORMANCE] (no_untracked_w_dir.json) min: 0ms max: 567.841ms 99th%: 447.968ms median: 0.002ms
+[SUMMARY] (no_untracked_w_dir.json) [92m passed: 20 [91m failed: 0[0m
+[AVG PERFORMANCE] (no_untracked_w_dir.json) min: 0ms max: 503.644ms 99th%: 446.511ms median: 0.002ms
+[SUMMARY] (no_untracked_w_dir.json) [92m passed: 20 [91m failed: 0[0m
+[AVG PERFORMANCE] (untracked.json) min: 0ms max: 42.263ms 99th%: 33.541ms median: 0.002ms
+[SUMMARY] (untracked.json) [92m passed: 20 [91m failed: 0[0m
+[AVG PERFORMANCE] (untracked.json) min: 0ms max: 42.959ms 99th%: 37.407ms median: 0.002ms
+[SUMMARY] (untracked.json) [92m passed: 6 [91m failed: 14[0m
+[AVG PERFORMANCE] (untracked.json) min: 0ms max: 44.787ms 99th%: 37.228ms median: 0.002ms
+[SUMMARY] (untracked.json) [92m passed: 20 [91m failed: 0[0m
+[AVG PERFORMANCE] (untracked.json) min: 0ms max: 44.615ms 99th%: 37.125ms median: 0.002ms
+[SUMMARY] (untracked.json) [92m passed: 7 [91m failed: 13[0m
+[AVG PERFORMANCE] (untracked.json) min: 0ms max: 44.576ms 99th%: 36.646ms median: 0.002ms
+[SUMMARY] (untracked.json) [92m passed: 2 [91m failed: 18[0m
+[AVG PERFORMANCE] (untracked.json) min: 0ms max: 43.021ms 99th%: 36.504ms median: 0.002ms
+[SUMMARY] (untracked.json) [92m passed: 21 [91m failed: 0[0m
+[AVG PERFORMANCE] (untracked.json) min: 0ms max: 43.708ms 99th%: 37.309ms median: 0.002ms
+[SUMMARY] (untracked.json) [92m passed: 8 [91m failed: 12[0m
+[AVG PERFORMANCE] (untracked.json) min: 0ms max: 43.756ms 99th%: 37.544ms median: 0.002ms
+[SUMMARY] (untracked.json) [92m passed: 2 [91m failed: 19[0m
+[AVG PERFORMANCE] (untracked.json) min: 0ms max: 42.84ms 99th%: 34.547ms median: 0.002ms
+[SUMMARY] (untracked.json) [92m passed: 20 [91m failed: 0[0m
+[AVG PERFORMANCE] (untracked.json) min: 0.001ms max: 43.705ms 99th%: 34.801ms median: 0.002ms
+[SUMMARY] (untracked.json) [92m passed: 20 [91m failed: 0[0m
+
+
+[OVERALL SUMMARIES]
+
+[[NO_UNTRACKED.JSON]]
+Total Successes: 202
+Total Failures: 0
+Min Avg Time: 0.0 ms
+Max Avg Time: 45.237 ms
+Median Avg Time: 0.002 ms
+99th Percentile Avg Time: 30.289 ms
+
+[[NO_UNTRACKED_W_DIR.JSON]]
+Total Successes: 402
+Total Failures: 0
+Min Avg Time: 0.0 ms
+Max Avg Time: 549.551 ms
+Median Avg Time: 0.004 ms
+99th Percentile Avg Time: 475.944 ms
+
+[[UNTRACKED.JSON]]
+Total Successes: 528
+Total Failures: 76
+Min Avg Time: 0.0 ms
+Max Avg Time: 593.174 ms
+Median Avg Time: 0.006 ms
+99th Percentile Avg Time: 512.209 ms
+
+[[UNTRACKED_W_DIR.JSON]]
+Total Successes: 0
+Total Failures: *
+
+
+NOTES: 
++ Untracked with directory literally crashes obs. 
+In the rate event it does work it seg faults due to a free on destroy
+
++ Untracked implementation fails to abide by update time set by user. 
+

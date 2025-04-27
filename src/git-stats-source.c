@@ -13,6 +13,7 @@
 #define OVERLOAD_VAL 9999
 #define MAX_OVERLOAD 4
 #define DEFAULT_OVERLOAD_CHAR "."
+#define TEST 1
 
 // global for putting source in "max number" mode
 static bool testMode = false;
@@ -63,6 +64,7 @@ static void *git_stats_create(obs_data_t *settings, obs_source_t *source)
 	info->gitSource = source;
 
 	const char *text_source_id = "text_ft2_source_v2";
+
 	errno = 0;
 	info->data = bzalloc(sizeof(struct gitData));
 	if (errno) {
@@ -383,6 +385,7 @@ static void git_stats_render(void *data, gs_effect_t *effect)
 // time elapsed passed in)
 static void git_stats_tick(void *data, float seconds)
 {
+  profile_start("git-stats_tick");
 	struct gitStatsInfo *info = data;
 	if (!obs_source_showing(info->gitSource)) {
 		return;
@@ -527,6 +530,7 @@ static void git_stats_tick(void *data, float seconds)
 				info->data->added +=
 					info->data->previousUntrackedAdded;
 			}
+      obs_log(LOG_INFO, "[TEST] %ld %ld", info->data->added, info->data->deleted);
 		}
 		int spaceCheck = (info->data->insertionEnabled << 1) |
 				 info->data->deletionEnabled;
@@ -776,6 +780,8 @@ static void git_stats_tick(void *data, float seconds)
 		/*       getElapsedTimeMs(timer));*/
 		/*freeTimer(&(timer));*/
 	}
+  profile_end("git-stats_tick");
+  profile_reenable_thread(); 
 }
 
 // callback for the test_button property
