@@ -7,7 +7,7 @@ cd $dirname
 
 # Remove installed .deb packages
 sudo apt-get purge git-stats
-cmake --preset ubuntu-x86_64 --fresh 
+cmake --preset ubuntu-x86_64 --fresh -DTEST_MODE=ON 
 cmake --build --preset ubuntu-x86_64
 mkdir -p build_x86_64/git-stats
 mkdir -p build_x86_64/git-stats/bin

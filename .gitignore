@@ -15,10 +15,12 @@
 !CMakePresets.json
 !LICENSE
 !README.md
+!.clangd
 !/docs
 !/buildProject.sh
 !/dev
 !/tests
+!/lib
 # Exclude lock files
 *.lock.json
 
@@ -34,3 +36,4 @@ tests/summary
 
 a.out
 tests/.venv
+src/cmake_vars.h
