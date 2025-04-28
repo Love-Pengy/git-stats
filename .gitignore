@@ -19,6 +19,7 @@
 !/buildProject.sh
 !/dev
 !/tests
+!/lib
 # Exclude lock files
 *.lock.json
 
@@ -34,3 +35,4 @@ tests/summary
 
 a.out
 tests/.venv
+
