@@ -1,10 +1,10 @@
 #pragma once
-
 #include <obs-module.h>
 #include <obs-source.h>
 
-// struct obs_source_info git_stats_source;
-struct gitData {
+// TODO: Change out for actual data source. sem, mutex, thread,
+// and an atomic instant refresh bool 
+struct git_stats_data {
 	char **trackedPaths;
 	int numTrackedFiles;
 	bool insertionEnabled;
