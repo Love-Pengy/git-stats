@@ -22,11 +22,13 @@ static const char *git_stats_name(void *unused)
 	return (obs_module_text("Git Stats"));
 }
 
-// update the settings data in our source
 static void git_stats_update(void *data, obs_data_t *settings)
 {
   //TODO: create git diff options here, signal to thread to update
   // immediately
+  //
+  // TODO: also create properties for insertion and deletion and update them with 
+  // those settings
   UNUSED_PARAMETER(settings);
   UNUSED_PARAMETER(data);
 }
@@ -76,84 +78,106 @@ static uint32_t git_stats_height(void *data)
   return(obs_source_get_width(ctx->ft2_deletion));
 }
 
-// Settings that are loaded when the default button is hit in the properties
-// window
-static void git_stats_get_defaults(obs_data_t *settings){
-  UNUSED_PARAMETER(settings);
+// these should stop or resume git diff updates
+static void git_stats_show(void* data){
+  UNUSED_PARAMETER(data);
+};
+static void git_stats_hide(void* data){
+  UNUSED_PARAMETER(data);
+};
+
+static void git_stats_defaults(obs_data_t *settings){
+
+  obs_data_set_default_int(settings, "speed", 5);
+
+  obs_data_t* default_font = obs_data_create();
+	obs_data_set_default_string(default_font, "face", "DejaVu Sans Mono");
+	obs_data_set_default_int(default_font, "size", 256);
+	obs_data_set_default_int(default_font, "flags", 0);
+	obs_data_set_default_string(default_font, "style", "");
+  obs_data_set_default_obj(settings, "font" , default_font);
+  
+  obs_data_set_default_string(settings, "overload_char", "."); 
+  
+  obs_data_set_default_bool(settings, "antialiasing", true);
+  obs_data_set_default_bool(settings, "outline", false);
+  obs_data_set_default_bool(settings, "drop_shadow", false);
+  
+  obs_data_set_default_bool(settings, "deletion_properties", true); 
+  obs_data_set_default_int(settings, "deletion_color1", 0xFF0000FF);
+	obs_data_set_default_int(settings, "deletion_color2", 0xFF0000FF);
+	obs_data_set_default_bool(settings, "deletion_symbol", true);
+
+  obs_data_set_default_bool(settings, "insertion_properties", true); 
+  obs_data_set_default_int(settings, "insertion_color1", 0xFF00FF00);
+	obs_data_set_default_int(settings, "insertion_color2", 0xFF00FF00);
+	obs_data_set_default_bool(settings, "insertion_symbol", true);
+
 }
+
 
 static obs_properties_t *git_stats_properties(void *data)
 {
-  struct git_stats_info* ctx = data;
+  UNUSED_PARAMETER(data);
 
   obs_properties_t *properties= obs_properties_create();
-  obs_properties_t *gen_properties = obs_properties_create();
+  // wait until user is done changing settings to update plugin
+  obs_properties_set_flags(properties,OBS_PROPERTIES_DEFER_UPDATE);
+  
+  obs_properties_t* general_properties = obs_properties_create();
 
-  (void)obs_properties_add_path(gen_properties, "repo", 
+  (void)obs_properties_add_path(general_properties, "repo", 
                           obs_module_text("Repository"), 
                           OBS_PATH_DIRECTORY, NULL, NULL);  
- 
-  obs_property_t* list = obs_properties_add_list(gen_properties, 
-                          "speed",
-                          obs_module_text("Speed At Which To Update The Diff"),
-                          OBS_COMBO_TYPE_RADIO, OBS_COMBO_FORMAT_INT);
-  
-  (void)obs_property_list_add_int(list, obs_module_text("Slow"), 10); 
-  (void)obs_property_list_add_int(list, obs_module_text("Normal"), 5); 
-  (void)obs_property_list_add_int(list, obs_module_text("Fast"), 3); 
-  (void)obs_properties_add_group(properties, "gen_properties", 
-                           "General Settings", OBS_GROUP_NORMAL, 
-                           gen_properties);
-  
+  (void)obs_properties_add_int(general_properties, "speed", 
+                               obs_module_text("Update Speed"),
+                               3, INT_MAX, 1);
+  (void)obs_properties_add_text(general_properties, "overload_char", 
+                                obs_module_text("Overload Character"), 
+                                OBS_TEXT_DEFAULT);
+  (void)obs_properties_add_text(general_properties, "overload_info", 
+                                "ASCII or Unicode Characters May Be Specified",
+                                OBS_TEXT_INFO);
+  (void)obs_properties_add_font(general_properties, "font", 
+                                obs_module_text("Font")); 
+
+  (void)obs_properties_add_bool(general_properties, "antialiasing", 
+                                obs_module_text("Antialiasing"));
+  (void)obs_properties_add_bool(general_properties, "outline", 
+                                obs_module_text("Outline"));
+  (void)obs_properties_add_bool(general_properties, "drop_shadow", 
+                                obs_module_text("Drow Shadows"));
+
+  (void)obs_properties_add_group(properties, "general_properties", 
+                           obs_module_text("General Settings"), 
+                           OBS_GROUP_NORMAL, general_properties);
+
   //---------------------------------------------------------------------------
   
-  obs_properties_t *shared_text_properties = 
-    obs_source_properties(ctx->ft2_insertion);
-
-  (void)obs_properties_remove_by_name(shared_text_properties, "text_file");
-	(void)obs_properties_remove_by_name(shared_text_properties, "from_file");
-	(void)obs_properties_remove_by_name(shared_text_properties, "log_mode");
-	(void)obs_properties_remove_by_name(shared_text_properties, "log_lines");
-	(void)obs_properties_remove_by_name(shared_text_properties, "word_wrap");
-	(void)obs_properties_remove_by_name(shared_text_properties, "text");
-	(void)obs_properties_remove_by_name(shared_text_properties, "custom_width");
-	(void)obs_properties_remove_by_name(shared_text_properties, "color1");
-	(void)obs_properties_remove_by_name(shared_text_properties, "color2");
-  (void)obs_properties_add_group(properties, "shared_text_properties", 
-                                 "Shared Settings", OBS_GROUP_NORMAL, 
-                                 shared_text_properties);
-  
-  //---------------------------------------------------------------------------
-  
-  obs_properties_t* insertion_properties = 
-    obs_source_properties(ctx->ft2_insertion);
-
-  (void)obs_properties_remove_by_name(insertion_properties, "font");
-	(void)obs_properties_remove_by_name(insertion_properties, "text_file");
-	(void)obs_properties_remove_by_name(insertion_properties, "from_file");
-	(void)obs_properties_remove_by_name(insertion_properties, "log_mode");
-	(void)obs_properties_remove_by_name(insertion_properties, "log_lines");
-	(void)obs_properties_remove_by_name(insertion_properties, "word_wrap");
-	(void)obs_properties_remove_by_name(insertion_properties, "text");
-	(void)obs_properties_remove_by_name(insertion_properties, "custom_width");
-	(void)obs_properties_remove_by_name(insertion_properties, "drop_shadow");
-	(void)obs_properties_remove_by_name(insertion_properties, "outline");
-	(void)obs_properties_remove_by_name(insertion_properties, "antialiasing");
+  obs_properties_t* insertion_properties = obs_properties_create();
+  (void)obs_properties_add_color_alpha(insertion_properties, 
+                                       "insertion_color1",
+                                       obs_module_text("Color 1"));
+  (void)obs_properties_add_color_alpha(insertion_properties, 
+                                       "insertion_color2",
+                                       obs_module_text("Color 2"));
 	(void)obs_properties_add_bool(insertion_properties, 
-                         "insertion_symbol", "+ Symbol");
+                                "insertion_symbol", 
+                                obs_module_text("+ Symbol"));
 
   (void)obs_properties_add_group(properties, "insertion_properties", 
-                           "Insertion Settings", OBS_GROUP_CHECKABLE,
-                           insertion_properties);
-
+                                 obs_module_text("Insertion Settings"), 
+                                 OBS_GROUP_CHECKABLE, insertion_properties);
 
   //---------------------------------------------------------------------------
   
   obs_properties_t* deletion_properties = obs_properties_create();
   (void)obs_properties_add_color_alpha(deletion_properties, "deletion_color1", 
-                                 "Color1");
+                                 obs_module_text("Color 1"));
   (void)obs_properties_add_color_alpha(deletion_properties, "deletion_color2", 
-                                 "Color2");
+                                 obs_module_text("Color 2"));
+	(void)obs_properties_add_bool(deletion_properties, "deletion_symbol", 
+                                obs_module_text("- Symbol"));
   
   (void)obs_properties_add_group(properties, "deletion_properties", 
                            "Deletion Settings", OBS_GROUP_CHECKABLE,
@@ -178,18 +202,21 @@ static void git_stats_tick(void *data, float seconds){
 
 // clang-format off
     struct obs_source_info git_stats_source = {
-        .id           = "git-stats",
-        .type         = OBS_SOURCE_TYPE_INPUT,
-        .output_flags = OBS_SOURCE_VIDEO,
-        .get_name     = git_stats_name,
-        .create       = git_stats_create,
-        .destroy      = git_stats_destroy,
-        .update       = git_stats_update,
-        .video_render = git_stats_render,
-        .get_width    = git_stats_width,
-        .get_height   = git_stats_height,
-        .video_tick = git_stats_tick, 
+        .id             = "git-stats",
+        .type           = OBS_SOURCE_TYPE_INPUT,
+        .output_flags   = OBS_SOURCE_VIDEO,
+        .get_name       = git_stats_name,
+        .create         = git_stats_create,
+        .destroy        = git_stats_destroy,
+        .update         = git_stats_update,
+        .video_render   = git_stats_render,
+        .get_width      = git_stats_width,
+        .get_height     = git_stats_height,
+        .get_defaults   = git_stats_defaults,
+        .video_tick     = git_stats_tick, 
         .get_properties = git_stats_properties, 
+        .hide           = git_stats_hide, 
+        .show           = git_stats_show,
         .icon_type = OBS_ICON_TYPE_TEXT, 
     };
 // clang-format on
