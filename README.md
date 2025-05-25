@@ -36,6 +36,14 @@ This plugin is an integrated implementation of the [git-linestats-widget](https:
 - Download git-stats-*-source.tar.xz from the [Releases](https://github.com/Love-Pengy/git-stats/releases/) page
 - Extract with ```tar -xf git-stats-*-source.tar.xz```
 - Change directory to the directory you just downloaded with ```cd git-stats-*-source```
+- Install Deps for libgit2 `apt install libssl-dev`
+- Build libgit2 
+    ```
+    cd lib/libgit2
+    mkdir build && cd build
+    cmake ..
+    cmake --build .
+    ```
 - Run the following commands to build the project: 
 
     ```

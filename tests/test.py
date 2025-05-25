@@ -10,6 +10,7 @@ import shutil
 import os
 import time
 import re
+import sys
 
 @dataclass
 class testRecap:
@@ -131,68 +132,25 @@ def getDiffOutput(test_scene_path: str,
         for item in config_sources:
             if(item["name"] == "Git Stats"):
                 settings = item["settings"] 
-    
-    # Handle Untracked
-    if(("untracked_files" in settings) and (settings["untracked_files"])): 
-        if("repositories_directory" in settings): 
-            dirs = next(os.walk(settings["repositories_directory"]))[1]
-            for dir in dirs:
-                # Put all untracked file in index with "intent to add" feature
-                args = [shutil.which("git"), "-C", 
-                        f"{settings["repositories_directory"]}/{dir}", 
-                        "add", "-N", "."] 
-                out = subprocess.run(args) 
+     
+    repo = settings["repo"]
 
-        if("single_repos" in settings): 
-            repoSpecs = settings["single_repos"]
-            for spec in repoSpecs:
-                args = [shutil.which("git"), "-C", spec["value"], "add", 
-                        "-N", "."] 
-                out = subprocess.run(args) 
-            
-    insertions = 0;
-    deletions = 0;
-    
-    if(("repositories_directory" in settings) 
-        and ("single_repos" in settings)):
-        # choose between repo dir and single repos for adding lines 
-        chosen = random.randint(1,2)
-    elif("repositories_directory" in settings):
-        chosen = 1
-    else: 
-        chosen = 2
-
+    # Add untracked files to intent to add list  
+    if(("untracked" in settings) and (settings["untracked"])): 
+        args = [shutil.which("git"), "-C", repo, "add", "-N", "."] 
+        subprocess.run(args) 
+             
     # add = 1, del = 2
     mode = random.randint(1,2)
-    currPath = None
-
-    if("repositories_directory" in settings):
-        dirs = next(os.walk(settings["repositories_directory"]))[1]
-        for dir in dirs:
-            args = [shutil.which("git"), "-C", 
-                    f"{settings["repositories_directory"]}/{dir}", 
-                    "diff", "--shortstat"] 
-            out = subprocess.run(args, capture_output=True, text=True) 
-            insertions += getInsertions(out.stdout)
-            deletions += getDeletions(out.stdout)
-
-        if(chosen == 1): 
-            currPath = f"{settings["repositories_directory"]}/{random.choice(dirs)}" 
-            currPath += "/"+random.choice([file for file in os.listdir(currPath) if 
-                                          os.path.isfile(os.path.join(currPath, file))])
     
-    if("single_repos" in settings):
-        repoSpecs = settings["single_repos"]
-        for spec in repoSpecs:
-            args = [shutil.which("git"), "-C", spec["value"], "diff", "--shortstat"] 
-            out = subprocess.run(args, capture_output=True, text=True) 
-            insertions += getInsertions(out.stdout)
-            deletions += getDeletions(out.stdout)
+    repo = settings["repo"]
+    args = [shutil.which("git"), "-C", repo, "diff", "--shortstat"] 
+    out = subprocess.run(args, capture_output=True, text=True) 
+    insertions = getInsertions(out.stdout)
+    deletions = getDeletions(out.stdout)
 
-        if(chosen == 2): 
-            currPath = f"{random.choice(repoSpecs)["value"]}" 
-            currPath += "/"+random.choice([file for file in os.listdir(currPath) if 
-                                          os.path.isfile(os.path.join(currPath, file))])
+    currPath = repo +"/"+random.choice([file for file in os.listdir(repo) if 
+                                  os.path.isfile(os.path.join(repo, file))])
         
     # remove or add lines for to add variation between runs
     if(mode == 2):   
@@ -211,8 +169,9 @@ def getDiffOutput(test_scene_path: str,
                 os.makedirs(os.path.dirname(dest_path), exist_ok = True)
                 shutil.copy2(currPath, dest_path)  
                 addedPaths[currPath] = dest_path 
-
-            lines = lines[:-1]
+            
+            amt = random.randint(1, 5) 
+            lines = lines[:(amt*-1)]
             truncLines = "".join(lines)
         with open(currPath, "w") as f: 
             f.write(truncLines)
@@ -233,29 +192,19 @@ def getDiffOutput(test_scene_path: str,
                     return(insertions, deletions)
 
         with open(currPath, "a") as f: 
-            f.write(ADD_HEADER)
+            for i in range(0, random.randint(1, 4)): 
+                f.write(ADD_HEADER)
      
     # Reset files added with intent to add 
-    if(("untracked_files" in settings) and (settings["untracked_files"])): 
-        if("repositories_directory" in settings): 
-            dirs = next(os.walk(settings["repositories_directory"]))[1]
-            for dir in dirs:
-                # remove all untracked files added to index with 
-                # "intent to add" 
-                args = [shutil.which("git"), "-C", 
-                        f"{settings["repositories_directory"]}/{dir}", 
-                        "reset", "--mixed"]
-                out = subprocess.run(args, stdout=subprocess.DEVNULL) 
-
-        if("single_repos" in settings): 
-            repoSpecs = settings["single_repos"]
-            for spec in repoSpecs:
-                args = [shutil.which("git"), "-C", spec["value"], "reset", 
-                        "--mixed"] 
-                out = subprocess.run(args, stdout=subprocess.DEVNULL) 
-        
+    if(("untracked" in settings) and (settings["untracked"])): 
+        repo = settings["repo"]
+        args = [shutil.which("git"), "-C", repo, "reset", 
+                "--mixed"] 
+        out = subprocess.run(args, stdout=subprocess.DEVNULL) 
+    
     return(insertions,deletions)
 
+# FIXME: scenes directory is not being properly cleaned
 def reset_test_files(added_paths, scenes_dir, scenes_backup_dir, 
                      source_file_backup_dir): 
     """Moves original scenes and source files back to where they came from
@@ -287,7 +236,7 @@ def run_test(args, sceneIndex) -> testRecap:
     scenesBackupDir = "scenesBackup"
     sourceFileBackupDst = "sourceFileBackup/srcFiles" 
     sourceFileBackupDir = "sourceFileBackup" 
-    os.makedirs(sourceFileBackupDst ,exist_ok=True)
+    os.makedirs(sourceFileBackupDst, exist_ok=True)
     shutil.move(args.filename, scenesBackupDir) 
 
     # ensure scenes dir exists in case was reset of new obs installation
@@ -346,7 +295,7 @@ def run_test(args, sceneIndex) -> testRecap:
         obs_proc.send_signal(signal.SIGINT)
         obs_proc.wait()
 
-        output, err= obs_proc.communicate()
+        output, err = obs_proc.communicate()
         lines = str(output).split("\\n")
         tickLine = [string for string in lines if "git-stats_tick" in string][0]
         min = re.search("min=[0-9]+.[0-9]+|min=[0-9]+", tickLine).group()
@@ -390,6 +339,8 @@ def run_test(args, sceneIndex) -> testRecap:
     except Exception as e: 
         reset_test_files(addedPaths, args.filename, scenesBackupDir, 
                          sourceFileBackupDir)
+        print(e)
+        print(sys.exc_info()[-2].tb_lineno)
         exit()
 
 
@@ -471,7 +422,7 @@ def main(args):
     if(args.outfile): 
         fptr.close()
 
-# FIXME: Untracked tests are broken
+#TODO: should give message if header is not found
 if __name__ == "__main__":
     parser = configargparse.ArgParser(
         description="Run automated test on git-stats",

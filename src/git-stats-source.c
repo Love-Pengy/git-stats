@@ -1,54 +1,136 @@
-
-#include "./git-stats-source.h"
-
-#include <errno.h>
+#include <unistd.h>
 #include <obs-module.h>
-#include <obs-source.h>
-#include <stdlib.h>
-
-#include "./git-diff-interface.h"
+#include <util/threading.h>
+#include "git2.h"
 #include "support.h"
-#include "./benchmarking/timeElapsed.h"
+#include "cmake_vars.h"
 
-#define OVERLOAD_VAL 9999
-#define MAX_OVERLOAD 4
-#define DEFAULT_OVERLOAD_CHAR "."
-#define TEST 1
+#define MAX_DIGITS 4
+// + 3 for insertion symbol, space, and null byte
+#define SPACES_SIZE MAX_DIGITS + 3
+//compile time generation of spaces string
+//https://gcc.gnu.org/onlinedocs/gcc/Designated-Inits.html
+const char SPACES[SPACES_SIZE] = {[0 ... SPACES_SIZE - 2] = ' ', [SPACES_SIZE - 1] = '\0'};
 
-// global for putting source in "max number" mode
-static bool testMode = false;
+#define MAX_VAL generate_max_int(MAX_DIGITS)
 
-// default font obj
-static obs_data_t *defaultFont;
+// Generates Constant At Compile Time
+// https://gcc.gnu.org/onlinedocs/gcc/Inline.html
+static inline long __attribute__((always_inline)) generate_max_int(const int n)
+{
+	long result = 0;
+	for (int i = 0; i < n; i++) {
+		result = (result * 10) + 9;
+	}
+	return result;
+}
 
-// global for the initial startup
-static int INIT_RUN = 1;
+struct git_thread_ctx {
+	// running context
+	bool initialized;
+	git_repository *repo;
 
-// global for instant update
-static bool FORCE_UPDATE = false;
+	// settings
+	int update_speed;
+	const char *repository_path;
+	bool new_val_status;
+	bool update_request;
+	bool active;
+	bool exit;
+	pthread_cond_t sleep_interrupt;
+	pthread_mutex_t data_mutex;
+	git_diff_options opts;
 
-static void git_stats_update(void *, obs_data_t *);
-
-static void git_stats_get_defaults(obs_data_t *);
-
-static obs_properties_t *git_stats_properties(void *);
-
-struct gitStatsInfo {
-	obs_source_t *insertionSource;
-	// pointer to the text source
-	// pointer to the deletion text source
-	obs_source_t *deletionSource;
-	// pointer to our source!!
-	obs_source_t *gitSource;
-	// length of the text source
-	uint32_t cx;
-	// height of the text source
-	uint32_t cy;
-	// time passed between the updates
-	float time_passed;
-	// the information that we get from our git stats thingy madonker
-	struct gitData *data;
+	// values
+	uint insertions;
+	uint deletions;
 };
+
+struct git_stats_info {
+	// internal text sources
+	obs_source_t *ft2_insertion;
+	obs_source_t *ft2_deletion;
+
+	obs_source_t *git_stats;
+
+	//text settings for constructing output
+	char *overload_char;
+	uint32_t len_x;
+	uint32_t len_y;
+	bool insertion_symbol_en;
+	bool deletion_symbol_en;
+
+	pthread_t git_thread;
+
+	struct git_thread_ctx *thread_ctx;
+};
+
+///////////////
+// THREADING //
+///////////////
+
+// Waits for either a signal on
+void wait_sig_time(struct git_thread_ctx *thread_data)
+{
+	struct timespec spec;
+
+	clock_gettime(CLOCK_REALTIME, &spec);
+	spec.tv_sec += thread_data->update_speed;
+
+	(void)pthread_mutex_lock(&(thread_data->data_mutex));
+
+	(void)pthread_cond_timedwait(&(thread_data->sleep_interrupt), &(thread_data->data_mutex), &spec);
+
+	(void)pthread_mutex_unlock(&(thread_data->data_mutex));
+}
+
+void *libgit2_thread(void *data)
+{
+	struct git_thread_ctx *thread_data = data;
+	os_set_thread_name("libgit2");
+	while (!thread_data->exit) {
+		if (!(thread_data->active)) {
+			usleep(100);
+			continue;
+		}
+		if (thread_data->update_request) {
+			if (!(thread_data->initialized)) {
+				(void)git_libgit2_init();
+				thread_data->initialized = true;
+			}
+
+			if (thread_data->repo) {
+				git_repository_free(thread_data->repo);
+			}
+
+			(void)pthread_mutex_lock(&(thread_data->data_mutex));
+
+			(void)git_repository_open(&(thread_data->repo), thread_data->repository_path);
+		}
+
+		git_diff *diff = NULL;
+		git_diff_stats *stats = NULL;
+		(void)git_diff_index_to_workdir(&diff, thread_data->repo, NULL, &(thread_data->opts));
+		(void)git_diff_get_stats(&stats, diff);
+		thread_data->insertions = git_diff_stats_insertions(stats);
+		thread_data->deletions = git_diff_stats_deletions(stats);
+		thread_data->update_request = false;
+		thread_data->new_val_status = true;
+
+#ifdef TEST_MODE
+		info("[git-stats] [TEST] %d %d", thread_data->insertions, thread_data->deletions);
+#endif
+
+		(void)pthread_mutex_unlock(&(thread_data->data_mutex));
+		git_diff_stats_free(stats);
+		git_diff_free(diff);
+
+		wait_sig_time(thread_data);
+	}
+	git_repository_free(thread_data->repo);
+	git_libgit2_shutdown();
+	pthread_exit(0);
+}
 
 static const char *git_stats_name(void *unused)
 {
@@ -56,852 +138,332 @@ static const char *git_stats_name(void *unused)
 	return (obs_module_text("Git Stats"));
 }
 
+static void git_stats_update(void *data, obs_data_t *settings)
+{
+	struct git_stats_info *ctx = data;
+
+	pthread_mutex_lock(&(ctx->thread_ctx->data_mutex));
+	ctx->thread_ctx->update_speed = obs_data_get_int(settings, "speed");
+	ctx->thread_ctx->repository_path = obs_data_get_string(settings, "repo");
+	pthread_mutex_unlock(&(ctx->thread_ctx->data_mutex));
+
+	ctx->insertion_symbol_en = obs_data_get_bool(settings, "insertion_symbol");
+	ctx->deletion_symbol_en = obs_data_get_bool(settings, "deletion_symbol");
+
+	bfree(ctx->overload_char);
+	ctx->overload_char = extract_unicode(obs_data_get_string(settings, "overload_char"));
+
+	obs_data_t *font_obj = obs_data_get_obj(settings, "font");
+
+	// Insertion Portion
+	obs_data_t *insertion_settings = obs_source_get_settings(ctx->ft2_insertion);
+
+	obs_data_set_obj(insertion_settings, "font", font_obj);
+
+	obs_data_set_bool(insertion_settings, "antialiasing", obs_data_get_bool(settings, "antialiasing"));
+	obs_data_set_bool(insertion_settings, "outline", obs_data_get_bool(settings, "outline"));
+	obs_data_set_bool(insertion_settings, "drop_shadow", obs_data_get_bool(settings, "drop_shadow"));
+	obs_data_set_int(insertion_settings, "color1", obs_data_get_int(settings, "insertion_color1"));
+	obs_data_set_int(insertion_settings, "color2", obs_data_get_int(settings, "insertion_color2"));
+	obs_source_update(ctx->ft2_insertion, insertion_settings);
+	obs_data_release(insertion_settings);
+
+	// Deletion Portion
+	obs_data_t *deletion_settings = obs_source_get_settings(ctx->ft2_deletion);
+
+	obs_data_set_obj(deletion_settings, "font", font_obj);
+	obs_data_release(font_obj);
+
+	obs_data_set_bool(deletion_settings, "antialiasing", obs_data_get_bool(settings, "antialiasing"));
+	obs_data_set_bool(deletion_settings, "outline", obs_data_get_bool(settings, "outline"));
+	obs_data_set_bool(deletion_settings, "drop_shadow", obs_data_get_bool(settings, "drop_shadow"));
+	obs_data_set_int(deletion_settings, "color1", obs_data_get_int(settings, "deletion_color1"));
+	obs_data_set_int(deletion_settings, "color2", obs_data_get_int(settings, "deletion_color2"));
+	obs_source_update(ctx->ft2_deletion, deletion_settings);
+	obs_data_release(deletion_settings);
+
+	(void)pthread_mutex_lock(&(ctx->thread_ctx->data_mutex));
+
+	git_diff_options git_opts;
+	(void)git_diff_options_init(&git_opts, GIT_DIFF_OPTIONS_VERSION);
+
+	obs_data_get_bool(settings, "untracked")
+		? git_opts.flags = (GIT_DIFF_SHOW_UNTRACKED_CONTENT | GIT_DIFF_RECURSE_UNTRACKED_DIRS)
+		: 0;
+
+	ctx->thread_ctx->opts = git_opts;
+	ctx->thread_ctx->update_request = true;
+	(void)pthread_cond_broadcast(&(ctx->thread_ctx->sleep_interrupt));
+
+	(void)pthread_mutex_unlock(&(ctx->thread_ctx->data_mutex));
+}
+
 // initializes the source
 static void *git_stats_create(obs_data_t *settings, obs_source_t *source)
 {
-	struct gitStatsInfo *info = bzalloc(sizeof(struct gitStatsInfo));
-	info->time_passed = 0;
-	info->gitSource = source;
+	struct git_stats_info *ctx = bzalloc(sizeof(struct git_stats_info));
+	ctx->thread_ctx = bzalloc(sizeof(struct git_thread_ctx));
+	ctx->git_stats = source;
+	ctx->ft2_insertion = obs_source_create_private("text_ft2_source_v2", "insertion_source", NULL);
+	ctx->ft2_deletion = obs_source_create_private("text_ft2_source_v2", "deletion_source", NULL);
 
-	const char *text_source_id = "text_ft2_source_v2";
+	git_stats_update(ctx, settings);
 
-	errno = 0;
-	info->data = bzalloc(sizeof(struct gitData));
-	if (errno) {
-		obs_log(LOG_ERROR, "%s (%d): %s", __FILE__, __LINE__,
-			strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-	info->data->trackedPaths = NULL;
-	info->data->numTrackedFiles = 0;
-	info->data->untrackedFiles = NULL;
-	info->data->numUntrackedFiles = 0;
-	info->data->previousUntrackedAdded = 0;
-	info->data->added = 0;
-	info->data->deleted = 0;
-	info->data->insertionEnabled = true;
-	info->data->deletionEnabled = true;
-	info->data->insertionSymbolEnabled = true;
-	info->data->deletionSymbolEnabled = true;
-	errno = 0;
+	(void)pthread_cond_init(&(ctx->thread_ctx->sleep_interrupt), NULL);
 
-	// bmalloc 8 bytes for each unicode character
-	info->data->overloadChar = bmalloc(16);
-	if (errno) {
-		obs_log(LOG_ERROR, "%s (%d): %s", __FILE__, __LINE__,
-			strerror(errno));
-		exit(EXIT_FAILURE);
-	}
+	(void)pthread_mutex_init(&(ctx->thread_ctx->data_mutex), NULL);
+	(void)pthread_create(&(ctx->git_thread), NULL, libgit2_thread, ctx->thread_ctx);
 
-	info->data->overloadChar[0] = '\0';
-	info->data->numUntrackedFiles = 0;
-	info->data->untrackedFiles = NULL;
-
-	defaultFont = obs_data_create();
-	obs_data_set_default_string(defaultFont, "face", "DejaVu Sans Mono");
-	obs_data_set_default_int(defaultFont, "size", 256);
-	obs_data_set_default_int(defaultFont, "flags", 0);
-	obs_data_set_default_string(defaultFont, "style", "");
-
-	strncpy(info->data->overloadChar, DEFAULT_OVERLOAD_CHAR,
-		strlen(DEFAULT_OVERLOAD_CHAR) + 1);
-
-	info->insertionSource = obs_source_create(
-		text_source_id, "insertionSource", settings, NULL);
-	obs_source_add_active_child(info->gitSource, info->insertionSource);
-	info->deletionSource =
-		obs_source_create(text_source_id, "deletionSource", NULL, NULL);
-	obs_source_add_active_child(info->gitSource, info->deletionSource);
-	obs_source_set_hidden(info->insertionSource, true);
-	obs_source_set_hidden(info->deletionSource, true);
-
-	// ensure that defaults are set AFTER the creation has completed
-	git_stats_get_defaults(settings);
-	git_stats_update(info, settings);
-
-	obs_log(LOG_INFO, "Source Created");
-
-	return (info);
+	return (ctx);
 }
 
-// bfree up the source and its data
 static void git_stats_destroy(void *data)
 {
-	struct gitStatsInfo *info = data;
-
-	obs_source_remove_active_child(info->gitSource, info->insertionSource);
-	obs_source_remove_active_child(info->gitSource, info->deletionSource);
-
-	obs_source_remove(info->insertionSource);
-	obs_source_release(info->insertionSource);
-	info->insertionSource = NULL;
-
-	obs_source_remove(info->deletionSource);
-	obs_source_release(info->deletionSource);
-	info->deletionSource = NULL;
-
-	bfree(info->data->overloadChar);
-	info->data->overloadChar = NULL;
-
-	for (int i = 0; i < info->data->numTrackedFiles; i++) {
-		bfree(info->data->trackedPaths[i]);
-		info->data->trackedPaths[i] = NULL;
-	}
-	for (int i = 0; i < info->data->numUntrackedFiles; i++) {
-		bfree(info->data->untrackedFiles[i]);
-		info->data->untrackedFiles[i] = NULL;
-	}
-
-	obs_data_release(defaultFont);
-
-	if (info->data->untrackedFiles) {
-		bfree(info->data->untrackedFiles);
-		info->data->untrackedFiles = NULL;
-	}
-	if (info->data->trackedPaths) {
-		bfree(info->data->trackedPaths);
-		info->data->trackedPaths = NULL;
-	}
-
-	bfree(info->data);
-	info->data = NULL;
-
-	bfree(info);
-	info = NULL;
-
-	obs_log(LOG_INFO, "Source Destroyed");
+	struct git_stats_info *ctx = data;
+	pthread_mutex_lock(&(ctx->thread_ctx->data_mutex));
+	ctx->thread_ctx->exit = true;
+	pthread_mutex_unlock(&(ctx->thread_ctx->data_mutex));
+	(void)pthread_cond_broadcast(&(ctx->thread_ctx->sleep_interrupt));
+	(void)obs_source_release(ctx->ft2_insertion);
+	(void)obs_source_release(ctx->ft2_deletion);
+	(void)pthread_join(ctx->git_thread, NULL);
+	(void)pthread_mutex_destroy(&(ctx->thread_ctx->data_mutex));
+	(void)pthread_cond_destroy(&(ctx->thread_ctx->sleep_interrupt));
+	bfree(ctx->overload_char);
+	bfree(ctx->thread_ctx);
+	bfree(ctx);
 }
 
 // get the width needed for the source
 static uint32_t git_stats_width(void *data)
 {
-	struct gitStatsInfo *info = data;
-	if (info->data->deletionEnabled) {
-		return (obs_source_get_width(info->deletionSource));
-	}
-	return (obs_source_get_width(info->insertionSource));
+	// deletion will be the length of the entire source so we take that width
+	struct git_stats_info *ctx = data;
+	return (obs_source_get_width(ctx->ft2_deletion));
 }
 
 // get the height needed for the source
 static uint32_t git_stats_height(void *data)
 {
-	struct gitStatsInfo *info = data;
-	if (info->data->insertionEnabled) {
-		return (obs_source_get_height(info->insertionSource));
-	}
-	return (obs_source_get_height(info->deletionSource));
+	struct git_stats_info *ctx = data;
+	return (obs_source_get_height(ctx->ft2_deletion));
 }
 
-// Settings that are loaded when the default button is hit in the properties
-// window
-static void git_stats_get_defaults(obs_data_t *settings)
+// these should stop or resume git diff updates
+static void git_stats_show(void *data)
 {
-	// repo settings
-	obs_data_set_default_int(settings, "delay", 5);
-	obs_data_set_default_string(settings, "overload_char", ".");
-	obs_data_set_default_bool(settings, "untracked_files", false);
+	struct git_stats_info *ctx = data;
+	pthread_mutex_lock(&(ctx->thread_ctx->data_mutex));
+	ctx->thread_ctx->active = true;
+	ctx->thread_ctx->update_request = true;
+	pthread_mutex_unlock(&(ctx->thread_ctx->data_mutex));
+};
 
-	// shared settings
+static void git_stats_hide(void *data)
+{
+	struct git_stats_info *ctx = data;
+	pthread_mutex_lock(&(ctx->thread_ctx->data_mutex));
+	ctx->thread_ctx->active = false;
+	pthread_mutex_unlock(&(ctx->thread_ctx->data_mutex));
+};
+
+static void git_stats_defaults(obs_data_t *settings)
+{
+
+	obs_data_set_default_int(settings, "speed", 5);
+
+	obs_data_t *default_font = obs_data_create();
+	obs_data_set_default_string(default_font, "face", "DejaVu Sans Mono");
+	obs_data_set_default_int(default_font, "size", 256);
+	obs_data_set_default_int(default_font, "flags", 0);
+	obs_data_set_default_string(default_font, "style", "");
+	obs_data_set_default_obj(settings, "font", default_font);
+	obs_data_release(default_font);
+
+	obs_data_set_default_string(settings, "overload_char", ".");
+
 	obs_data_set_default_bool(settings, "antialiasing", true);
 	obs_data_set_default_bool(settings, "outline", false);
 	obs_data_set_default_bool(settings, "drop_shadow", false);
 
-	// deletion opts
+	obs_data_set_default_bool(settings, "deletion_properties", true);
 	obs_data_set_default_int(settings, "deletion_color1", 0xFF0000FF);
 	obs_data_set_default_int(settings, "deletion_color2", 0xFF0000FF);
 	obs_data_set_default_bool(settings, "deletion_symbol", true);
 
-	// insertion opts
-	obs_data_set_default_int(settings, "color1", 0xFF00FF00);
-	obs_data_set_default_int(settings, "color2", 0xFF00FF00);
-	obs_data_set_default_bool(settings, "insertion_symbol", true);
-
-	// make DejaVu Sans Mono the default because sans serif is not mono and
-	// doesn't require nerd fonts installed
-	obs_data_set_default_obj(settings, "font", defaultFont);
-
-	// group settings
 	obs_data_set_default_bool(settings, "insertion_properties", true);
-	obs_data_set_default_bool(settings, "deletion_properties", true);
+	obs_data_set_default_int(settings, "insertion_color1", 0xFF00FF00);
+	obs_data_set_default_int(settings, "insertion_color2", 0xFF00FF00);
+	obs_data_set_default_bool(settings, "insertion_symbol", true);
 }
 
-// update the settings data in our source
-static void git_stats_update(void *data, obs_data_t *settings)
+static obs_properties_t *git_stats_properties(void *data)
 {
-	/*bench *timer = startTimer();*/
+	UNUSED_PARAMETER(data);
 
-	struct gitStatsInfo *info = data;
+	obs_properties_t *properties = obs_properties_create();
 
-	// copy settings from dummy property to the deletion text source
-	obs_data_t *insertionFont = obs_data_get_obj(settings, "font");
-	obs_data_t *gsSettings = obs_source_get_settings(info->gitSource);
-	obs_data_t *isSettings = obs_source_get_settings(info->insertionSource);
-	obs_data_t *dsSettings = obs_source_get_settings(info->deletionSource);
+	obs_properties_t *general_properties = obs_properties_create();
 
-	obs_data_set_obj(dsSettings, "font", insertionFont);
-	obs_data_release(insertionFont);
+	(void)obs_properties_add_path(general_properties, "repo", obs_module_text("Repository"), OBS_PATH_DIRECTORY,
+				      NULL, NULL);
+	(void)obs_properties_add_int(general_properties, "speed", obs_module_text("Update Speed"), 3, INT_MAX, 1);
+	(void)obs_properties_add_text(general_properties, "overload_char", obs_module_text("Overload Character"),
+				      OBS_TEXT_DEFAULT);
+	(void)obs_properties_add_text(general_properties, "overload_info",
+				      "ASCII or Unicode Characters May Be Specified", OBS_TEXT_INFO);
+	(void)obs_properties_add_bool(general_properties, "untracked", obs_module_text("Include Untracked Files"));
+	//TODO: add advanced section to expose more settings for diff
+	(void)obs_properties_add_font(general_properties, "font", obs_module_text("Font"));
 
-	obs_data_set_bool(dsSettings, "antialiasing",
-			  obs_data_get_bool(settings, "antialiasing"));
-	obs_data_set_int(dsSettings, "color1",
-			 obs_data_get_int(settings, "deletion_color1"));
-	obs_data_set_int(dsSettings, "color2",
-			 obs_data_get_int(settings, "deletion_color2"));
-	obs_data_set_bool(dsSettings, "outline",
-			  obs_data_get_bool(settings, "outline"));
-	obs_data_set_bool(dsSettings, "drop_shadow",
-			  obs_data_get_bool(settings, "drop_shadow"));
+	(void)obs_properties_add_bool(general_properties, "antialiasing", obs_module_text("Antialiasing"));
+	(void)obs_properties_add_bool(general_properties, "outline", obs_module_text("Outline"));
+	(void)obs_properties_add_bool(general_properties, "drop_shadow", obs_module_text("Drow Shadows"));
 
-	if (strcmp(obs_data_get_string(settings, "overload_char"), "") &&
-	    obs_data_get_string(settings, "overload_char")) {
-		char *unicode = extractUnicode(
-			obs_data_get_string(settings, "overload_char"));
-		if (unicode) {
-			strcpy(info->data->overloadChar, unicode);
-			bfree(unicode);
-		} else {
-			strncpy(info->data->overloadChar, DEFAULT_OVERLOAD_CHAR,
-				strlen(DEFAULT_OVERLOAD_CHAR) + 1);
-		}
-	} else {
-		strncpy(info->data->overloadChar, DEFAULT_OVERLOAD_CHAR,
-			strlen(DEFAULT_OVERLOAD_CHAR) + 1);
-	}
+	(void)obs_properties_add_group(properties, "general_properties", obs_module_text("General Settings"),
+				       OBS_GROUP_NORMAL, general_properties);
 
-	info->data->insertionEnabled =
-		obs_data_get_bool(settings, "insertion_properties");
-	info->data->insertionSymbolEnabled =
-		obs_data_get_bool(settings, "insertion_symbol");
-	info->data->deletionEnabled =
-		obs_data_get_bool(settings, "deletion_properties");
-	info->data->deletionSymbolEnabled =
-		obs_data_get_bool(settings, "deletion_symbol");
+	//---------------------------------------------------------------------------
 
-	obs_data_array_t *dirArray =
-		obs_data_get_array(gsSettings, "single_repos");
+	obs_properties_t *insertion_properties = obs_properties_create();
+	(void)obs_properties_add_color_alpha(insertion_properties, "insertion_color1", obs_module_text("Color 1"));
+	(void)obs_properties_add_color_alpha(insertion_properties, "insertion_color2", obs_module_text("Color 2"));
+	(void)obs_properties_add_bool(insertion_properties, "insertion_symbol", obs_module_text("+ Symbol"));
 
-	//free data if nothing specified before changing numtrackedfiles to 0
-	if (info->data->numTrackedFiles > 0) {
-		for (int i = 0; i < info->data->numTrackedFiles; i++) {
-			bfree(info->data->trackedPaths[i]);
-			info->data->trackedPaths[i] = NULL;
-		}
-	}
-	if (info->data->numUntrackedFiles > 0) {
-		for (int i = 0; i < info->data->numUntrackedFiles; i++) {
-			bfree(info->data->untrackedFiles[i]);
-			info->data->untrackedFiles[i] = NULL;
-		}
-	}
-	if (!info->data->trackedPaths) {
-		errno = 0;
-		info->data->trackedPaths =
-			bmalloc(sizeof(char *) * MAXNUMPATHS);
-		if (errno) {
-			obs_log(LOG_ERROR, "%s (%d): %s", __FILE__, __LINE__,
-				strerror(errno));
-		}
-		for (int i = 0; i < MAXNUMPATHS; i++) {
-			info->data->trackedPaths[i] = NULL;
-		}
-	}
-	if (!info->data->untrackedFiles) {
+	(void)obs_properties_add_group(properties, "insertion_properties", obs_module_text("Insertion Settings"),
+				       OBS_GROUP_CHECKABLE, insertion_properties);
 
-		errno = 0;
-		info->data->untrackedFiles =
-			bmalloc(sizeof(char *) * MAXNUMPATHS);
-		if (errno) {
-			obs_log(LOG_ERROR, "%s (%d): %s", __FILE__, __LINE__,
-				strerror(errno));
-		}
-		for (int i = 0; i < MAXNUMPATHS; i++) {
-			info->data->untrackedFiles[i] = NULL;
-		}
-	}
-	info->data->numTrackedFiles = 0;
-	info->data->numUntrackedFiles = 0;
+	//---------------------------------------------------------------------------
 
-	for (size_t i = 0; i < obs_data_array_count(dirArray); i++) {
-		obs_data_t *currItem = obs_data_array_item(dirArray, i);
-		const char *currVal = obs_data_get_string(currItem, "value");
-		errno = 0;
-		info->data->trackedPaths[i] =
-			bmalloc(sizeof(char) * strlen(currVal) + 1);
-		if (errno) {
-			obs_log(LOG_ERROR, "%s (%d): %s", __FILE__, __LINE__,
-				strerror(errno));
-			obs_data_release(currItem);
-			info->data->trackedPaths[i] = NULL;
-			info->data->numTrackedFiles++;
-			continue;
-		}
-		if (checkPath((char *)currVal)) {
-			strncpy(info->data->trackedPaths[i], currVal,
-				strlen(currVal) + 1);
-			info->data->numTrackedFiles++;
-		}
-		obs_data_release(currItem);
-	}
-	obs_data_array_release(dirArray);
-	if (strcmp(obs_data_get_string(settings, "repositories_directory"),
-		   "") &&
-	    (obs_data_get_string(settings, "repositories_directory") != NULL)) {
-		addGitRepoDir(info->data,
-			      (char *)obs_data_get_string(
-				      settings, "repositories_directory"));
-	}
-	if (obs_data_get_bool(settings, "untracked_files")) {
-		createUntrackedFiles(info->data);
-	}
-	info->data->delayAmount = obs_data_get_int(settings, "delay");
-	info->data->added = 0;
-	info->data->deleted = 0;
+	obs_properties_t *deletion_properties = obs_properties_create();
+	(void)obs_properties_add_color_alpha(deletion_properties, "deletion_color1", obs_module_text("Color 1"));
+	(void)obs_properties_add_color_alpha(deletion_properties, "deletion_color2", obs_module_text("Color 2"));
+	(void)obs_properties_add_bool(deletion_properties, "deletion_symbol", obs_module_text("- Symbol"));
 
-	if (gsSettings) {
-		obs_data_release(gsSettings);
-	}
-	if (isSettings) {
-		obs_data_release(isSettings);
-	}
-	if (dsSettings) {
-		obs_data_release(dsSettings);
-	}
-	FORCE_UPDATE = true;
-	/*endTimer(timer);*/
-	/*printf("[BENCHMARK] Update Took %ld Ms\n", getElapsedTimeMs(timer));*/
-	/*freeTimer(&timer);*/
+	(void)obs_properties_add_group(properties, "deletion_properties", "Deletion Settings", OBS_GROUP_CHECKABLE,
+				       deletion_properties);
+	return properties;
 }
 
 // render out the source
 static void git_stats_render(void *data, gs_effect_t *effect)
 {
 	UNUSED_PARAMETER(effect);
-	struct gitStatsInfo *info = data;
-	obs_source_video_render(info->insertionSource);
-	obs_source_video_render(info->deletionSource);
+	struct git_stats_info *ctx = data;
+	obs_source_video_render(ctx->ft2_insertion);
+	obs_source_video_render(ctx->ft2_deletion);
 }
 
-// update relevant real time data for the source (called each frame with the
-// time elapsed passed in)
 static void git_stats_tick(void *data, float seconds)
 {
-  profile_start("git-stats_tick");
-	struct gitStatsInfo *info = data;
-	if (!obs_source_showing(info->gitSource)) {
-		return;
+	UNUSED_PARAMETER(seconds);
+#ifdef TEST_MODE
+	profile_start("git-stats_tick");
+#endif
+	struct git_stats_info *ctx = data;
+	if (ctx->thread_ctx->new_val_status) {
+		obs_data_t *insertion_settings = obs_source_get_settings(ctx->ft2_insertion);
+		obs_data_t *deletion_settings = obs_source_get_settings(ctx->ft2_deletion);
+		char text_buffer[(((MAX_DIGITS * 4) + 1) + 1 + ((MAX_DIGITS * 4) + 1)) * 2];
+
+		pthread_mutex_lock(&(ctx->thread_ctx->data_mutex));
+		uint truncated_insertion_val = ctx->thread_ctx->insertions % MAX_VAL;
+		int num_overload_insertion = ctx->thread_ctx->insertions / MAX_VAL;
+		pthread_mutex_unlock(&(ctx->thread_ctx->data_mutex));
+		num_overload_insertion > MAX_DIGITS ? num_overload_insertion = MAX_DIGITS : num_overload_insertion;
+
+		// max 4 bytes for each unicode char
+		char insertion_overload_string[(MAX_DIGITS * 4) + 1];
+		insertion_overload_string[0] = ' ';
+		insertion_overload_string[1] = '\0';
+
+		// generate insertion overload string
+		for (int i = 1; i < num_overload_insertion + 1; i++) {
+			strcat(insertion_overload_string, ctx->overload_char);
+		}
+
+		// construct insertion string
+		char insertion_value_string[MAX_DIGITS + 2];
+
+		if (ctx->insertion_symbol_en) {
+			insertion_value_string[0] = '+';
+			insertion_value_string[1] = '\0';
+		} else {
+			insertion_value_string[0] = ' ';
+			insertion_value_string[1] = '\0';
+		}
+
+		(void)snprintf(insertion_value_string + 1, MAX_DIGITS + 1, "%d", truncated_insertion_val);
+		pad_string_left(insertion_value_string, MAX_DIGITS + 1);
+		sprintf(text_buffer, "%s\n%s", insertion_overload_string, insertion_value_string);
+		obs_data_set_string(insertion_settings, "text", text_buffer);
+		obs_source_update(ctx->ft2_insertion, insertion_settings);
+		obs_data_release(insertion_settings);
+
+		pthread_mutex_lock(&(ctx->thread_ctx->data_mutex));
+		uint truncated_deletion_val = ctx->thread_ctx->deletions % MAX_VAL;
+		int num_overload_deletion = ctx->thread_ctx->deletions / MAX_VAL;
+		pthread_mutex_unlock(&(ctx->thread_ctx->data_mutex));
+		num_overload_deletion > MAX_DIGITS ? num_overload_deletion = MAX_DIGITS : num_overload_deletion;
+
+		char deletion_overload_string[SPACES_SIZE + 1 + ((MAX_DIGITS * 4) + 2)];
+		(void)memset(deletion_overload_string, '\0', sizeof(deletion_overload_string));
+
+		strncpy(deletion_overload_string, SPACES, SPACES_SIZE);
+
+		// generate overload string
+		for (int i = SPACES_SIZE; i < SPACES_SIZE + num_overload_deletion; i++) {
+			strcat(deletion_overload_string, ctx->overload_char);
+		}
+
+		char deletion_value_string[SPACES_SIZE + 1 + (MAX_DIGITS + 2)];
+
+		(void)strncpy(deletion_value_string, SPACES, SPACES_SIZE);
+
+		if (ctx->deletion_symbol_en) {
+			deletion_value_string[strlen(deletion_value_string)] = '-';
+			deletion_value_string[strlen(deletion_value_string) + 1] = '\0';
+		} else {
+			deletion_value_string[strlen(deletion_value_string)] = ' ';
+			deletion_value_string[strlen(deletion_value_string) + 1] = '\0';
+		}
+
+		(void)snprintf(deletion_value_string + SPACES_SIZE, MAX_DIGITS + 1, "%d", truncated_deletion_val);
+		pad_string_right(deletion_value_string + SPACES_SIZE, MAX_DIGITS + 1);
+
+		sprintf(text_buffer, "%s\n%s", deletion_overload_string, deletion_value_string);
+
+		obs_data_set_string(deletion_settings, "text", text_buffer);
+		obs_source_update(ctx->ft2_deletion, deletion_settings);
+		obs_data_release(deletion_settings);
+
+		pthread_mutex_lock(&(ctx->thread_ctx->data_mutex));
+		ctx->thread_ctx->new_val_status = false;
+		pthread_mutex_unlock(&(ctx->thread_ctx->data_mutex));
 	}
-	info->time_passed += seconds;
-	if (info->time_passed > info->data->delayAmount || INIT_RUN ||
-	    FORCE_UPDATE) {
-		if (checkUntrackedFiles(info->data) &&
-		    info->data->numUntrackedFiles) {
-			printf("SOURCE UPDATED BASED ON UNTRACKED\n");
-			obs_data_t *currSettings =
-				obs_source_get_settings(info->gitSource);
-			obs_source_update(info->gitSource, currSettings);
-			obs_data_release(currSettings);
-		}
-		/*bench *timer = startTimer();*/
-		obs_data_t *isSettings =
-			obs_source_get_settings(info->insertionSource);
-		obs_data_t *dsSettings =
-			obs_source_get_settings(info->deletionSource);
-		obs_data_t *gsSettings =
-			obs_source_get_settings(info->gitSource);
-		INIT_RUN &= 0;
-		FORCE_UPDATE = false;
-		info->time_passed = 0;
-		if (testMode) {
-			int numOverload = MAX_OVERLOAD;
-			errno = 0;
-			char *overloadString = bmalloc(
-				sizeof(char) * (MB_CUR_MAX * numOverload));
-			if (errno) {
-				obs_log(LOG_ERROR, "%s (%d): %s", __FILE__,
-					__LINE__, strerror(errno));
-				if (isSettings) {
-					obs_data_release(isSettings);
-				}
-				if (dsSettings) {
-					obs_data_release(dsSettings);
-				}
-				if (gsSettings) {
-					obs_data_release(gsSettings);
-				}
-				return;
-			}
-			overloadString[0] = ' ';
-			overloadString[1] = '\0';
-			for (volatile int i = 1; i < numOverload + 1; i++) {
-				strcat(overloadString,
-				       info->data->overloadChar);
-			}
-			char buffer[256] = "";
-			char *overloadValueString = ltoa(OVERLOAD_VAL);
-			snprintf(buffer,
-				 strlen(overloadValueString) +
-					 strlen(overloadString) + 3,
-				 "%s\n+%s", overloadString,
-				 overloadValueString);
-			obs_data_set_string(isSettings, "text", buffer);
-			obs_source_update(info->insertionSource, isSettings);
-
-			char spaces[7] = "";
-			int deletionSize = strlen(overloadValueString) + 2;
-			for (int i = 0; i < deletionSize; i++) {
-				spaces[i] = ' ';
-				spaces[i + 1] = '\0';
-			}
-			snprintf(buffer,
-				 strlen(overloadString) + (strlen(spaces) * 2) +
-					 strlen(overloadValueString) + 3,
-				 "%s%s\n%s-%s", spaces, overloadString, spaces,
-				 overloadValueString);
-			obs_data_set_string(dsSettings, "text", buffer);
-			obs_source_update(info->deletionSource, dsSettings);
-			bfree(overloadValueString);
-			bfree(overloadString);
-			if (gsSettings) {
-				obs_data_release(gsSettings);
-			}
-			if (isSettings) {
-				obs_data_release(isSettings);
-			}
-			if (dsSettings) {
-				obs_data_release(dsSettings);
-			}
-			return;
-		}
-		if (info->data->trackedPaths == NULL ||
-		    !info->data->numTrackedFiles) {
-			if (info->data->insertionEnabled) {
-				if (info->data->insertionSymbolEnabled) {
-					obs_data_set_string(isSettings, "text",
-							    "\n   +0");
-					obs_source_update(info->insertionSource,
-							  isSettings);
-				} else {
-					obs_data_set_string(isSettings, "text",
-							    "\n    0");
-					obs_source_update(info->insertionSource,
-							  isSettings);
-				}
-			} else {
-				obs_data_set_string(isSettings, "text", "    ");
-				obs_source_update(info->insertionSource,
-						  isSettings);
-			}
-			if (info->data->deletionEnabled) {
-				if (info->data->deletionSymbolEnabled) {
-					obs_data_set_string(dsSettings, "text",
-							    "\n      -0   ");
-					obs_source_update(info->deletionSource,
-							  dsSettings);
-				} else {
-					obs_data_set_string(dsSettings, "text",
-							    "\n       0   ");
-					obs_source_update(info->deletionSource,
-							  dsSettings);
-				}
-			} else {
-				obs_data_set_string(dsSettings, "text",
-						    "         ");
-				obs_source_update(info->deletionSource,
-						  dsSettings);
-			}
-			if (gsSettings) {
-				obs_data_release(gsSettings);
-			}
-			if (isSettings) {
-				obs_data_release(isSettings);
-			}
-			if (dsSettings) {
-				obs_data_release(dsSettings);
-			}
-			return;
-		} else {
-			info->data->deleted = 0;
-			info->data->added = 0;
-			updateTrackedFiles(info->data);
-			if (!checkUntrackedFileLock(info->data)) {
-				info->data->previousUntrackedAdded =
-					updateUntrackedFiles(info->data);
-			} else {
-				info->data->added +=
-					info->data->previousUntrackedAdded;
-			}
-      obs_log(LOG_INFO, "[TEST] %ld %ld", info->data->added, info->data->deleted);
-		}
-		int spaceCheck = (info->data->insertionEnabled << 1) |
-				 info->data->deletionEnabled;
-		if (info->data->insertionEnabled) {
-			long value = info->data->added;
-			int numOverload = value / OVERLOAD_VAL;
-			value = value % OVERLOAD_VAL;
-			numOverload > MAX_OVERLOAD ? numOverload = MAX_OVERLOAD
-						   : numOverload;
-			char *overloadString = NULL;
-			if (!numOverload) {
-				errno = 0;
-				overloadString = bmalloc(sizeof(char) * 2);
-
-				if (errno) {
-					if (gsSettings) {
-						obs_data_release(gsSettings);
-					}
-					if (isSettings) {
-						obs_data_release(isSettings);
-					}
-					if (dsSettings) {
-						obs_data_release(dsSettings);
-					}
-					obs_log(LOG_ERROR, "%s (%d): %s",
-						__FILE__, __LINE__,
-						strerror(errno));
-
-					return;
-				}
-				overloadString[0] = '\0';
-			} else {
-				errno = 0;
-				overloadString = bmalloc(
-					sizeof(char) *
-					(strlen(info->data->overloadChar) *
-					 numOverload));
-				if (errno) {
-					obs_log(LOG_ERROR, "%s (%d): %s",
-						__FILE__, __LINE__,
-						strerror(errno));
-					if (gsSettings) {
-						obs_data_release(gsSettings);
-					}
-					if (isSettings) {
-						obs_data_release(isSettings);
-					}
-					if (dsSettings) {
-						obs_data_release(dsSettings);
-					}
-					return;
-				}
-				overloadString[1] = '\0';
-				overloadString[0] = ' ';
-			}
-			for (volatile int i = 1; i < numOverload + 1; i++) {
-				strcat(overloadString,
-				       info->data->overloadChar);
-			}
-
-			char outputBuffer[100] = "";
-			char *valueString = ltoa(value);
-			char insertionSpaces[4] = "";
-			if (spaceCheck == 0b11) {
-				for (size_t i = 0; i < 4 - strlen(valueString);
-				     i++) {
-					insertionSpaces[i] = ' ';
-					insertionSpaces[i + 1] = '\0';
-				}
-			} else {
-				strncpy(insertionSpaces, "   ", 4);
-			}
-			if (info->data->insertionSymbolEnabled) {
-				snprintf(outputBuffer,
-					 strlen(overloadString) +
-						 strlen(valueString) +
-						 (strlen(insertionSpaces) * 2) +
-						 3,
-					 "%s%s\n%s+%s", insertionSpaces,
-					 overloadString, insertionSpaces,
-					 valueString);
-				obs_data_set_string(isSettings, "text",
-						    outputBuffer);
-			} else {
-				snprintf(outputBuffer,
-					 strlen(overloadString) +
-						 strlen(valueString) +
-						 (strlen(insertionSpaces) * 2) +
-						 3,
-					 "%s%s\n %s%s", insertionSpaces,
-					 overloadString, insertionSpaces,
-					 valueString);
-				obs_data_set_string(isSettings, "text",
-						    outputBuffer);
-			}
-			bfree(valueString);
-			bfree(overloadString);
-		} else {
-			char outputBuffer[100] = " ";
-			obs_data_set_string(isSettings, "text", outputBuffer);
-		}
-		char outputBuffer[100] = "\0";
-		if (info->data->deletionEnabled) {
-			long deletionValue = info->data->deleted;
-			int numOverload = deletionValue / OVERLOAD_VAL;
-			numOverload > MAX_OVERLOAD ? numOverload = MAX_OVERLOAD
-						   : numOverload;
-			deletionValue = deletionValue % OVERLOAD_VAL;
-			char *overloadString = NULL;
-			if (!numOverload) {
-				errno = 0;
-				overloadString = bmalloc(sizeof(char) * 2);
-				if (errno) {
-					obs_log(LOG_ERROR, "%s (%d): %s",
-						__FILE__, __LINE__,
-						strerror(errno));
-					if (isSettings) {
-						obs_data_release(isSettings);
-					}
-					if (dsSettings) {
-						obs_data_release(dsSettings);
-					}
-					if (gsSettings) {
-						obs_data_release(gsSettings);
-					}
-					return;
-				}
-				overloadString[0] = '\0';
-			} else {
-				errno = 0;
-				overloadString = bmalloc(
-					sizeof(char) *
-					(strlen(info->data->overloadChar) *
-					 numOverload));
-				if (errno) {
-					obs_log(LOG_ERROR, "%s (%d): %s",
-						__FILE__, __LINE__,
-						strerror(errno));
-					if (isSettings) {
-						obs_data_release(isSettings);
-					}
-					if (dsSettings) {
-						obs_data_release(dsSettings);
-					}
-					if (gsSettings) {
-						obs_data_release(gsSettings);
-					}
-					return;
-				}
-				overloadString[1] = '\0';
-				overloadString[0] = ' ';
-			}
-			for (int i = 1; i < numOverload + 1; i++) {
-				strcat(overloadString,
-				       info->data->overloadChar);
-			}
-			char deletionSpaces[7] = "";
-			char *deletionValueString = ltoa(deletionValue);
-			if (info->data->insertionEnabled) {
-				for (size_t i = 0;
-				     i < (4 - strlen(deletionValueString));
-				     i++) {
-					deletionSpaces[i] = ' ';
-					deletionSpaces[i + 1] = '\0';
-				}
-			} else {
-				strncpy(deletionSpaces, "   ", 4);
-			}
-			if (info->data->deletionSymbolEnabled) {
-				if (spaceCheck == 0b11) {
-					snprintf(
-						outputBuffer,
-						strlen(overloadString) +
-							(strlen(deletionSpaces) *
-							 2) +
-							strlen(deletionValueString) +
-							3 + 12,
-						"%s%s%s\n%s-%s%s", "      ",
-						overloadString, deletionSpaces,
-						"      ", deletionValueString,
-						deletionSpaces);
-				} else {
-					snprintf(
-						outputBuffer,
-						strlen(overloadString) +
-							(strlen(deletionSpaces) *
-							 2) +
-							strlen(deletionValueString) +
-							3,
-						"%s%s\n%s-%s%s", deletionSpaces,
-						overloadString, deletionSpaces,
-						deletionValueString,
-						deletionSpaces);
-				}
-				obs_data_set_string(dsSettings, "text",
-						    outputBuffer);
-			} else {
-				if (spaceCheck == 0b11) {
-					snprintf(
-						outputBuffer,
-						strlen(overloadString) +
-							(strlen(deletionSpaces) *
-							 2) +
-							strlen(deletionValueString) +
-							3 + 12,
-						"%s%s%s\n%s %s%s", "      ",
-						overloadString, deletionSpaces,
-						"      ", deletionValueString,
-						deletionSpaces);
-				} else {
-					snprintf(
-						outputBuffer,
-						strlen(overloadString) +
-							(strlen(deletionSpaces) *
-							 2) +
-							strlen(deletionValueString) +
-							3 + 12,
-						"%s%s\n %s%s", overloadString,
-						deletionSpaces,
-						deletionValueString,
-						deletionSpaces);
-				}
-
-				obs_data_set_string(dsSettings, "text",
-						    outputBuffer);
-			}
-			bfree(deletionValueString);
-			bfree(overloadString);
-		} else {
-			char outputBuff[100] = " ";
-			obs_data_set_string(dsSettings, "text", outputBuff);
-		}
-
-		obs_source_update(info->deletionSource, dsSettings);
-		obs_source_update(info->insertionSource, isSettings);
-		if (gsSettings) {
-			obs_data_release(gsSettings);
-		}
-		if (isSettings) {
-			obs_data_release(isSettings);
-		}
-		if (dsSettings) {
-			obs_data_release(dsSettings);
-		}
-		/*endTimer(timer);*/
-		/*printf("[BENCHMARK] Tick Took: %ld Ms\n",*/
-		/*       getElapsedTimeMs(timer));*/
-		/*freeTimer(&(timer));*/
-	}
-  profile_end("git-stats_tick");
-  profile_reenable_thread(); 
-}
-
-// callback for the test_button property
-static bool toggleTestCallback(obs_properties_t *properties,
-			       obs_property_t *buttonProps, void *data)
-{
-	UNUSED_PARAMETER(properties);
-	UNUSED_PARAMETER(buttonProps);
-	UNUSED_PARAMETER(data);
-	testMode ^= 1;
-	FORCE_UPDATE = true;
-	return (true);
-}
-
-// properties that are generated in the ui of the source
-static obs_properties_t *git_stats_properties(void *unused)
-{
-	struct gitStatsInfo *info = unused;
-	UNUSED_PARAMETER(unused);
-	obs_data_t *isSettings = obs_source_get_settings(info->insertionSource);
-
-	obs_properties_t *props = obs_properties_create();
-
-	obs_properties_t *repo_props = obs_properties_create();
-
-	obs_properties_add_path(repo_props, "repositories_directory",
-				"Directory Holding Repositories",
-				OBS_PATH_DIRECTORY, NULL, NULL);
-
-	obs_properties_add_editable_list(repo_props, "single_repos",
-					 "Single Repositories",
-					 OBS_EDITABLE_LIST_TYPE_FILES, NULL,
-					 NULL);
-
-	obs_properties_add_int(repo_props, "delay", "Delay Between Updates", 1,
-			       INT_MAX, 1);
-
-	obs_properties_add_text(repo_props, "overload_char",
-				"Character Shown For Overload",
-				OBS_TEXT_DEFAULT);
-
-	obs_properties_add_bool(repo_props, "untracked_files",
-				"Account For Untracked Files");
-
-	obs_properties_add_button(repo_props, "test_button", "Test Max Size",
-				  toggleTestCallback);
-
-	obs_properties_add_group(props, "repo_properties",
-				 "Repository Settings", OBS_GROUP_NORMAL,
-				 repo_props);
-
-	///////////////
-
-	obs_properties_t *shared_props =
-		obs_source_properties(info->insertionSource);
-	obs_properties_remove_by_name(shared_props, "text_file");
-	obs_properties_remove_by_name(shared_props, "from_file");
-	obs_properties_remove_by_name(shared_props, "log_mode");
-	obs_properties_remove_by_name(shared_props, "log_lines");
-	obs_properties_remove_by_name(shared_props, "word_wrap");
-	obs_properties_remove_by_name(shared_props, "text");
-	obs_properties_remove_by_name(shared_props, "custom_width");
-	obs_properties_remove_by_name(shared_props, "color1");
-	obs_properties_remove_by_name(shared_props, "color2");
-	obs_properties_add_group(props, "shared_properties", "Shared Settings",
-				 OBS_GROUP_NORMAL, shared_props);
-
-	///////////////
-
-	obs_properties_t *text1_props =
-		obs_source_properties(info->insertionSource);
-	obs_properties_remove_by_name(text1_props, "font");
-	obs_properties_remove_by_name(text1_props, "text_file");
-	obs_properties_remove_by_name(text1_props, "from_file");
-	obs_properties_remove_by_name(text1_props, "log_mode");
-	obs_properties_remove_by_name(text1_props, "log_lines");
-	obs_properties_remove_by_name(text1_props, "word_wrap");
-	obs_properties_remove_by_name(text1_props, "text");
-	obs_properties_remove_by_name(text1_props, "custom_width");
-	obs_properties_remove_by_name(text1_props, "drop_shadow");
-	obs_properties_remove_by_name(text1_props, "outline");
-	obs_properties_remove_by_name(text1_props, "antialiasing");
-	obs_properties_add_bool(text1_props, "insertion_symbol", "+ Symbol");
-	obs_data_set_default_int(isSettings, "color1", 0xFF00FF00);
-	obs_data_set_default_int(isSettings, "color1", 0xFF00FF00);
-	obs_properties_add_group(props, "insertion_properties",
-				 "Insertion Settings", OBS_GROUP_CHECKABLE,
-				 text1_props);
-
-	//////////////
-
-	obs_properties_t *text2_props = obs_properties_create();
-	obs_properties_add_color_alpha(text2_props, "deletion_color1",
-				       "Color1");
-	obs_properties_add_color_alpha(text2_props, "deletion_color2",
-				       "Color2");
-	obs_properties_add_bool(text2_props, "deletion_symbol", "- Symbol");
-
-	obs_properties_add_group(props, "deletion_properties",
-				 "Deletion Settings", OBS_GROUP_CHECKABLE,
-				 text2_props);
-
-	obs_data_release(isSettings);
-	return props;
+#ifdef TEST_MODE
+	profile_end("git-stats_tick");
+	profile_reenable_thread();
+#endif
 }
 
 // clang-format off
     struct obs_source_info git_stats_source = {
-        .id           = "git-stats",
-        .type         = OBS_SOURCE_TYPE_INPUT,
-        .output_flags = OBS_SOURCE_VIDEO,
-        .get_name     = git_stats_name,
-        .create       = git_stats_create,
-        .destroy      = git_stats_destroy,
-        .update       = git_stats_update,
-        .video_render = git_stats_render,
-        .get_width    = git_stats_width,
-        .get_height   = git_stats_height,
-        .video_tick = git_stats_tick, 
+        .id             = "git-stats",
+        .type           = OBS_SOURCE_TYPE_INPUT,
+        .output_flags   = OBS_SOURCE_VIDEO,
+        .get_name       = git_stats_name,
+        .create         = git_stats_create,
+        .destroy        = git_stats_destroy,
+        .update         = git_stats_update,
+        .video_render   = git_stats_render,
+        .get_width      = git_stats_width,
+        .get_height     = git_stats_height,
+        .get_defaults   = git_stats_defaults,
+        .video_tick     = git_stats_tick, 
         .get_properties = git_stats_properties, 
-        .icon_type = OBS_ICON_TYPE_TEXT, 
+        .hide           = git_stats_hide, 
+        .show           = git_stats_show,
+        .icon_type      = OBS_ICON_TYPE_TEXT, 
     };
 // clang-format on

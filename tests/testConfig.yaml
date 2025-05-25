@@ -1,7 +1,6 @@
 filename: ~/.config/obs-studio/basic/scenes
 numTests: 10 
 scenes: ["testScenes/no_untracked.json", 
-        "testScenes/no_untracked_w_dir.json",       
         "testScenes/untracked.json"]
 outfile: "summary"
-verbose: 0 
+verbose: 1 

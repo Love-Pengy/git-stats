@@ -51,6 +51,14 @@ runs:
         echo "/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin" >> $GITHUB_PATH
         brew install --quiet zsh
         echo ::endgroup::
+      
+    - name: Build Libgit2 
+      shell: bash
+      run: |
+        cd lib/libgit2
+        mkdir build && cd build
+        cmake ..
+        cmake --build .
 
     - name: Run Ubuntu Build
       if: runner.os == 'Linux'
