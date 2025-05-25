@@ -41,11 +41,5 @@ endif()
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/libgit2/include)
 target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/libgit2/build/libgit2.so)
 
-target_sources(
-  ${CMAKE_PROJECT_NAME}
-  PRIVATE src/git-stats.c
-          src/support.h
-          src/support.c
-          src/git-stats-source.c
-)
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/git-stats.c src/support.h src/support.c src/git-stats-source.c)
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})

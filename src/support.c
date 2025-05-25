@@ -13,9 +13,9 @@
 // extracts first unicode character from a given string
 char *extract_unicode(const char *input)
 {
-  if(!input){
-    return(NULL);
-  }
+	if (!input) {
+		return (NULL);
+	}
 	errno = 0;
 	char *buff = bmalloc(sizeof(char) * MB_CUR_MAX);
 	buff[0] = '\0';
@@ -56,20 +56,21 @@ char *extract_unicode(const char *input)
 }
 
 // pad string with spaces on left to fill size space
-void pad_string_left(char* input, int size){
-  if(!input){
-    return;
-  }
-  char* buff = bmalloc(sizeof(char) * size);
-  buff[size] = '\0';
-  (void)memset(buff, ' ', size); 
-  (void)memcpy(buff+(size-strlen(input)), input, strlen(input));  
-  (void)memcpy(input, buff, size);
-  bfree(buff);
+void pad_string_left(char *input, int size)
+{
+	if (!input) {
+		return;
+	}
+	char *buff = bmalloc(sizeof(char) * size);
+	buff[size] = '\0';
+	(void)memset(buff, ' ', size);
+	(void)memcpy(buff + (size - strlen(input)), input, strlen(input));
+	(void)memcpy(input, buff, size);
+	bfree(buff);
 }
 
 // pad string with spaces on right to fill size space
-void pad_string_right(char* input, int size){
-  memset(input+strlen(input), ' ', size-strlen(input)); 
+void pad_string_right(char *input, int size)
+{
+	memset(input + strlen(input), ' ', size - strlen(input));
 };
-
